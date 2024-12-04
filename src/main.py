@@ -18,13 +18,13 @@ class ScienceQuotesBot:
         self.instagram_poster = InstagramPoster()
         self.ist_timezone = pytz.timezone('Asia/Kolkata')
         
-    def generate_and_post(self):
+    def generate_and_post(self, test_mode=False):
         try:
             # Get current time in IST
             now = datetime.now(self.ist_timezone)
             
-            # Only post between 9 AM and 11 PM IST
-            if now.hour < 9 or now.hour >= 23:
+            # Only post between 9 AM and 11 PM IST (skip check in test mode)
+            if not test_mode and (now.hour < 9 or now.hour >= 23):
                 print(f"Outside posting hours (current time: {now.strftime('%I:%M %p IST')})")
                 return
                 
@@ -56,7 +56,7 @@ class ScienceQuotesBot:
     def run(self, test_mode=False):
         if test_mode:
             print("Running in test mode...")
-            self.generate_and_post()
+            self.generate_and_post(test_mode=True)
             return
             
         # Calculate posting interval
