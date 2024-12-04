@@ -2,8 +2,6 @@ import os
 import time
 from instagrapi import Client
 from pathlib import Path
-from typing import Optional
-import random
 
 class InstagramPoster:
     def __init__(self):
@@ -17,11 +15,20 @@ class InstagramPoster:
         try:
             print(f"Attempting Instagram login for user: {self.username}")
             
-            # Always do a fresh login in test mode to ensure credentials work
             if self.session_file.exists():
-                print("Removing old session file...")
-                os.remove(self.session_file)
+                print("Found existing session, attempting to load...")
+                try:
+                    self.client.load_settings(str(self.session_file))
+                    # Verify session is still valid with a simple API call
+                    self.client.get_timeline_feed()
+                    print("Existing session is valid!")
+                    return True
+                except Exception as e:
+                    print(f"Existing session invalid: {str(e)}")
+                    print("Will attempt fresh login...")
+                    os.remove(self.session_file)
             
+            # Only reach here if no session exists or it was invalid
             print("Performing fresh login...")
             self.client.login(self.username, self.password)
             print("Login successful!")
@@ -45,10 +52,6 @@ class InstagramPoster:
                 print("Aborting post due to login failure")
                 return False
                 
-            # Add random delay to avoid exact timing
-            delay = random.randint(1, 300)  # Random delay between 1-300 seconds
-            time.sleep(delay)
-            
             print(f"Uploading image from path: {image_path}")
             media = self.client.photo_upload(
                 image_path,
