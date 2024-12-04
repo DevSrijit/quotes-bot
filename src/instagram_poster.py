@@ -1,40 +1,64 @@
-from instabot import Bot
 import os
-from typing import Optional
 import time
+from instagrapi import Client
+from pathlib import Path
+from typing import Optional
 import random
 
 class InstagramPoster:
     def __init__(self):
-        self.bot = Bot()
-        self._login()
+        self.client = Client()
+        self.username = os.getenv("INSTAGRAM_USERNAME")
+        self.password = os.getenv("INSTAGRAM_PASSWORD")
+        self.session_file = Path(os.path.dirname(os.path.dirname(__file__))) / "session.json"
         
-    def _login(self):
-        username = os.getenv("INSTAGRAM_USERNAME")
-        password = os.getenv("INSTAGRAM_PASSWORD")
-        
-        if not username or not password:
-            raise ValueError("Instagram credentials not found in environment variables")
-            
-        self.bot.login(username=username, password=password)
-        
+    def login(self):
+        try:
+            # Try to load existing session
+            if self.session_file.exists():
+                self.client.load_settings(str(self.session_file))
+                self.client.login(self.username, self.password)
+            else:
+                # Fresh login
+                self.client.login(self.username, self.password)
+                # Save session for future use
+                self.client.dump_settings(str(self.session_file))
+            return True
+        except Exception as e:
+            print(f"Login failed: {e}")
+            return False
+
     def post_image(self, image_path: str, caption: str) -> bool:
         try:
+            if not self.login():
+                return False
+                
             # Add random delay to avoid exact timing
             delay = random.randint(1, 300)  # Random delay between 1-300 seconds
             time.sleep(delay)
             
-            # Post to Instagram
-            success = self.bot.upload_photo(image_path, caption=caption)
+            print("Uploading to Instagram...")
+            media = self.client.photo_upload(
+                image_path,
+                caption=caption
+            )
             
-            # Clean up temporary files created by instabot
-            if os.path.exists(image_path + ".REMOVE_ME"):
-                os.remove(image_path + ".REMOVE_ME")
+            print(f"Successfully posted to Instagram. Media ID: {media.id}")
+            
+            # Clean up the image file
+            if os.path.exists(image_path):
+                os.remove(image_path)
                 
-            return success
+            return True
+            
         except Exception as e:
-            print(f"Error posting to Instagram: {e}")
+            print(f"Failed to post to Instagram: {e}")
             return False
-        
+            
     def cleanup(self):
-        self.bot.logout()
+        """Clean up any temporary files or sessions"""
+        try:
+            if self.session_file.exists():
+                os.remove(self.session_file)
+        except Exception as e:
+            print(f"Cleanup error: {e}")
