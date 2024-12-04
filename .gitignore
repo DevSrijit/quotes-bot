@@ -1,0 +1,6 @@
+.env
+venv
+history
+__pycache__
+output_*
+fonts
