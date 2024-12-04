@@ -12,46 +12,63 @@ from instagram_poster import InstagramPoster
 
 class ScienceQuotesBot:
     def __init__(self):
+        print("\nInitializing Science Quotes Bot...")
         load_dotenv()
         self.quote_generator = QuoteGenerator()
         self.image_generator = ImageGenerator()
         self.instagram_poster = InstagramPoster()
         self.ist_timezone = pytz.timezone('Asia/Kolkata')
+        print("Initialization complete.")
         
     def generate_and_post(self, test_mode=False):
         try:
             # Get current time in IST
             now = datetime.now(self.ist_timezone)
             
-            # Only post between 9 AM and 11 PM IST (skip check in test mode)
-            if not test_mode and (now.hour < 9 or now.hour >= 23):
-                print(f"Outside posting hours (current time: {now.strftime('%I:%M %p IST')})")
-                return
-                
-            print(f"\nStarting post generation at {now.strftime('%I:%M %p IST')}")
+            if test_mode:
+                print("\nRunning test post at", now.strftime('%I:%M %p IST'))
+            else:
+                # Only check posting hours in non-test mode
+                if now.hour < 9 or now.hour >= 23:
+                    print(f"Outside posting hours (current time: {now.strftime('%I:%M %p IST')})")
+                    return
+                print(f"\nStarting post generation at {now.strftime('%I:%M %p IST')}")
             
             # Generate quote
+            print("\n1. Generating quote...")
             quote_data = self.quote_generator.get_quote()
             if not quote_data:
                 print("Failed to generate quote")
                 return
+            print("Quote generated successfully!")
+            print(f"Quote: {quote_data['quote']}")
+            print(f"Author: {quote_data['author']}")
                 
             # Generate image
+            print("\n2. Generating image...")
             image_path = self.image_generator.create_quote_image(
                 quote_data['quote'],
                 quote_data['author']
             )
+            print(f"Image generated successfully at: {image_path}")
             
             # Post to Instagram
-            self.instagram_poster.post_image(
+            print("\n3. Posting to Instagram...")
+            success = self.instagram_poster.post_image(
                 image_path,
                 quote_data['instagram_description']
             )
             
-            print(f"Successfully posted at {now.strftime('%I:%M %p IST')}")
+            if success:
+                print(f"\nPost completed successfully at {now.strftime('%I:%M %p IST')}")
+            else:
+                print("\nPost failed!")
             
         except Exception as e:
-            print(f"Error in generate_and_post: {e}")
+            print(f"Error in generate_and_post: {str(e)}")
+            import traceback
+            print("Full traceback:")
+            print(traceback.format_exc())
     
     def run(self, test_mode=False):
         if test_mode:
