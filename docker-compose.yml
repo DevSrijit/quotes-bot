@@ -1,8 +1,10 @@
 version: '3.8'
 
 services:
-  bot:
+  service:
     build: .
+    image: quotes-bot-service
+    container_name: quotes-bot-service
     volumes:
       - ./logs:/home/app/logs
       - ./session.json:/home/app/session.json
@@ -10,9 +12,9 @@ services:
       - .env
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8000:8000"  # Only accessible locally
+      - "127.0.0.1:4950:8000"  # Map container's 8000 to host's 4950
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:4950/health"]  # Use mapped port
       interval: 300s
       timeout: 10s
       retries: 3

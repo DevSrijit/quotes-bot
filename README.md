@@ -44,7 +44,7 @@ docker-compose up -d
 ```
 
 ### Monitoring
-- Health checks run on localhost:8000 (not publicly accessible)
+- Health checks run on localhost:4950 (not publicly accessible)
 - Email alerts sent via Resend API for:
   - Service downtime
   - Service recovery
