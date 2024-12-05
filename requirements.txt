@@ -1,5 +1,5 @@
 google-generativeai==0.3.2
-Pillow==10.0.0  # Using 10.0.0 for better compatibility
+pillow>=10.3.0
 numpy==1.26.4
 instagrapi==2.0.3
 python-dotenv==1.0.1
