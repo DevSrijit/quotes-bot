@@ -166,6 +166,44 @@ pm2 stop science-quotes-bot   # Stop service
 - Application logs: `./logs/instagram_bot.log`
 - PM2 logs: `./logs/pm2_out.log` and `./logs/pm2_error.log`
 
+## Running as a System Service on Raspberry Pi
+
+To run this application as a system service that starts on boot and automatically restarts:
+
+1. Copy the service file to systemd:
+```bash
+sudo cp quotable-science.service /etc/systemd/system/
+```
+
+2. Reload systemd daemon:
+```bash
+sudo systemctl daemon-reload
+```
+
+3. Enable the service to start on boot:
+```bash
+sudo systemctl enable quotable-science
+```
+
+4. Start the service:
+```bash
+sudo systemctl start quotable-science
+```
+
+You can check the status of the service using:
+```bash
+sudo systemctl status quotable-science
+```
+
+View logs:
+```bash
+# View application logs
+sudo tail -f /var/log/quotable-science.log
+
+# View error logs
+sudo tail -f /var/log/quotable-science.error.log
+```
+
 ## Project Structure
 
 - `src/main.py`: Main script that orchestrates the entire process

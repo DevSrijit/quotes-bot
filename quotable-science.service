@@ -1,0 +1,16 @@
+[Unit]
+Description=Quotable Science
+After=network.target
+
+[Service]
+Type=simple
+User=srijit
+WorkingDirectory=/home/srijit/quotes-bot
+ExecStart=/home/srijit/quotes-bot/venv/bin/python src/main.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/quotable-science.log
+StandardError=append:/var/log/quotable-science.error.log
+
+[Install]
+WantedBy=multi-user.target
