@@ -9,6 +9,9 @@ from apscheduler.triggers.interval import IntervalTrigger
 from quote_generator import QuoteGenerator
 from image_generator import ImageGenerator
 from instagram_poster import InstagramPoster
+from monitoring import MonitoringService
+from health import run_health_server
+import threading
 
 class ScienceQuotesBot:
     def __init__(self):
@@ -17,7 +20,10 @@ class ScienceQuotesBot:
         self.quote_generator = QuoteGenerator()
         self.image_generator = ImageGenerator()
         self.instagram_poster = InstagramPoster()
+        self.monitoring = MonitoringService()
         self.ist_timezone = pytz.timezone('Asia/Kolkata')
+        self.last_error_time = None
+        self.error_reported = False
         print("Initialization complete.")
         
     def generate_and_post(self, test_mode=False):
@@ -38,8 +44,7 @@ class ScienceQuotesBot:
             print("\n1. Generating quote...")
             quote_data = self.quote_generator.get_quote()
             if not quote_data:
-                print("Failed to generate quote")
-                return
+                raise Exception("Failed to generate quote")
             print("Quote generated successfully!")
             print(f"Quote: {quote_data['quote']}")
             print(f"Author: {quote_data['author']}")
@@ -61,14 +66,23 @@ class ScienceQuotesBot:
             
             if success:
                 print(f"\nPost completed successfully at {now.strftime('%I:%M %p IST')}")
+                if self.error_reported:
+                    self.monitoring.report_recovery()
+                    self.error_reported = False
             else:
-                print("\nPost failed!")
+                raise Exception("Failed to post to Instagram")
             
         except Exception as e:
-            print(f"Error in generate_and_post: {str(e)}")
-            import traceback
-            print("Full traceback:")
-            print(traceback.format_exc())
+            error_msg = f"Error in generate_and_post: {str(e)}"
+            print(error_msg)
+            
+            # Only report errors if they occur more than 30 minutes apart
+            current_time = datetime.now(self.ist_timezone)
+            if (not self.last_error_time or 
+                (current_time - self.last_error_time).total_seconds() > 1800):
+                self.monitoring.report_downtime(error_msg)
+                self.last_error_time = current_time
+                self.error_reported = True
     
     def run(self, test_mode=False):
         if test_mode:
@@ -76,6 +90,10 @@ class ScienceQuotesBot:
             self.generate_and_post(test_mode=True)
             return
             
+        # Start health check server in a separate thread
+        health_thread = threading.Thread(target=run_health_server, daemon=True)
+        health_thread.start()
+        
         # Calculate posting interval
         posts_per_day = int(os.getenv("POSTS_PER_DAY", "1"))
         seconds_per_day = 14 * 3600  # 14 hours (9 AM to 11 PM)
