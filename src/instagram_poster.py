@@ -1,7 +1,9 @@
 import os
 import time
+import random
 from instagrapi import Client
 from pathlib import Path
+from instagram_activity import InstagramActivity
 
 class InstagramPoster:
     def __init__(self):
@@ -10,6 +12,7 @@ class InstagramPoster:
         self.username = os.getenv("INSTAGRAM_USERNAME")
         self.password = os.getenv("INSTAGRAM_PASSWORD")
         self.session_file = Path(os.path.dirname(os.path.dirname(__file__))) / "session.json"
+        self.activity = InstagramActivity(client=self.client)
         
     def login(self):
         try:
@@ -57,6 +60,18 @@ class InstagramPoster:
                 image_path,
                 caption=caption
             )
+            print("Post uploaded successfully!")
+            
+            # Perform organic activity with dynamic probability
+            activity_chance = random.uniform(0.15, 0.25)  # 15-25% chance
+            if random.random() < activity_chance:
+                print("\nPerforming some organic activity...")
+                # Sometimes take a short break before starting activity
+                if random.random() < 0.3:  # 30% chance
+                    delay = random.uniform(60, 180)  # 1-3 minutes
+                    print(f"Taking a {int(delay/60)} minute break before starting activity...")
+                    time.sleep(delay)
+                self.activity.perform_daily_activity()
             
             print(f"Successfully posted to Instagram. Media ID: {media.id}")
             
