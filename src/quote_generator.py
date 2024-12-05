@@ -68,7 +68,7 @@ class QuoteGenerator:
             pickle.dump(self.chat_history, f)
         
     def get_quote(self) -> Dict:
-        prompt = """You are managing an Instagram account that posts daily, aesthetic, and thought-provoking science-related quotes. 
+        prompt = """You are managing an Instagram account that posts daily, aesthetic, and thought-provoking science-related quotes.        
         Your goal is to create content that both inspires and educates, while optimizing for maximum reach and engagement. 
         Select powerful quotes from the realms of science, computer science, physics, chemistry, or engineering—without diluting 
         their depth or complexity to suit general audience comprehension. Let the gravity and intellectual rigor of the quotes shine through.
@@ -76,7 +76,10 @@ class QuoteGenerator:
         For each quote, craft a compelling Instagram description that breaks down its essence in an engaging and relatable manner, 
         encouraging the audience to interact and reflect. Use best practices for Instagram, such as relevant hashtags, analogies, 
         and calls to action, to enhance visibility and connection with the audience. Do not repeat a quote that has been provided 
-        in the chat history, if provided so."""
+        in the chat history, if provided so.
+        
+        Important: Do not include citations or references in your response. Only provide the quote, author, and Instagram description 
+        in the requested JSON format. Including anything else will lead to breaking the API constraints. STRICTLY follow the Structued Output Schema provided."""
         
         try:
             response = self.chat_session.send_message(prompt)

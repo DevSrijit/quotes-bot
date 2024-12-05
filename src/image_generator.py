@@ -18,6 +18,7 @@ class ImageGenerator:
         self.SIDE_PADDING = 130
         self.FONT_SIZE = 55
         self.LINE_BREAK = 55  # Line break height between quote and author
+        self.LINE_SPACING = 20  # Adding new line spacing between quote lines
         
         # Create fonts directory in the project root
         self.fonts_dir = Path(os.path.dirname(os.path.dirname(__file__))) / "fonts"
@@ -46,7 +47,7 @@ class ImageGenerator:
             np.random.randint(0, 255, 3) / 255.0,  # Completely random first color
             np.random.randint(0, 255, 3) / 255.0,  # Completely random second color
             np.random.randint(0, 255, 3) / 255.0,  # Third color
-            #np.random.randint(0, 255, 3) / 255.0,  # Fourth color
+            np.random.randint(0, 255, 3) / 255.0,  # Fourth color
             #np.random.randint(0, 255, 3) / 255.0,  # Fifth color
         ]
         
@@ -138,11 +139,15 @@ class ImageGenerator:
         font = ImageFont.truetype(str(self.font_path), self.FONT_SIZE)
         
         # Wrap text
-        max_width = self.WIDTH - (2 * self.SIDE_PADDING)
         quote_lines = textwrap.wrap(quote, width=30)
         
+        # Calculate maximum line width
+        max_line_width = max(font.getbbox(line)[2] - font.getbbox(line)[0] for line in quote_lines)
+        right_padding = self.WIDTH - (self.SIDE_PADDING + max_line_width)
+        
         # Calculate heights
-        quote_height = sum(font.getbbox(line)[3] - font.getbbox(line)[1] for line in quote_lines)
+        line_heights = [font.getbbox(line)[3] - font.getbbox(line)[1] for line in quote_lines]
+        quote_height = sum(line_heights) + self.LINE_SPACING * (len(quote_lines) - 1)
         author_height = font.getbbox(author)[3] - font.getbbox(author)[1]
         total_height = quote_height + self.LINE_BREAK + author_height
         
@@ -153,15 +158,18 @@ class ImageGenerator:
         for line in quote_lines:
             bbox = font.getbbox(line)
             draw.text((self.SIDE_PADDING, current_y), line, 
-                     fill=text_color, font=font)
-            current_y += bbox[3] - bbox[1]
+                    fill=text_color, font=font)
+            current_y += (bbox[3] - bbox[1]) + self.LINE_SPACING  # Add spacing after each line
         
         # Add line break
         current_y += self.LINE_BREAK - (bbox[3] - bbox[1]) // 2
         
         # Draw author
         draw.text((self.SIDE_PADDING, current_y), author, 
-                 fill=text_color, font=font)
+                fill=text_color, font=font)
+        
+        # Log calculated right padding for debugging
+        print(f"Calculated right padding: {right_padding}")
         
         # Save image
         output_path = f"output_{random.randint(1000, 9999)}.png"
