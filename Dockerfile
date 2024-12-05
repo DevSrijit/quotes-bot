@@ -2,8 +2,8 @@ FROM python:3.13-alpine
 
 WORKDIR /home/app
 
-# Install only the essential build dependencies
-RUN apk add -u zlib-dev jpeg-dev gcc musl-dev
+# Install essential build dependencies
+RUN apk add --no-cache zlib-dev jpeg-dev gcc musl-dev g++ libffi-dev
 
 RUN python3 -m pip install --upgrade pip
 
