@@ -38,15 +38,15 @@ class MonitoringService:
             now = datetime.now(self.ist_timezone).strftime("%I:%M %p IST, %d %b %Y")
             
             params = {
-                "from": "Science Quotes Bot <bot@quotes.srijit.co>",
+                "from": "Quotable Sciencet <quotes@srijit.co>",
                 "to": [self.monitoring_email],
-                "subject": f"[Science Quotes Bot] {subject}",
+                "subject": f"[Quotable Science] {subject}",
                 "html": f"""
                 <h2>{subject}</h2>
                 <p><strong>Time:</strong> {now}</p>
                 <p>{content}</p>
                 <hr>
-                <p><em>This is an automated message from your Science Quotes Bot monitoring service.</em></p>
+                <p><em>This is an automated message from your monitoring service.</em></p>
                 """
             }
             
@@ -61,7 +61,7 @@ class MonitoringService:
         """Report service downtime or critical errors"""
         subject = "⚠️ Service Alert: Bot Encountered an Error"
         content = f"""
-        The Science Quotes Bot has encountered an error and may need attention.
+        The  has encountered an error and may need attention.
         
         <strong>Error Details:</strong><br>
         <pre>{error_details}</pre>
@@ -74,7 +74,7 @@ class MonitoringService:
         """Report service recovery after downtime"""
         subject = "✅ Service Recovery: Bot is Back Online"
         content = """
-        The Science Quotes Bot has recovered and is functioning normally again.
+        The  has recovered and is functioning normally again.
         
         <p>The service will continue to be monitored for any further issues.</p>
         """
@@ -84,7 +84,7 @@ class MonitoringService:
         """Report service startup"""
         subject = "🚀 Service Started: Bot Initialized"
         content = """
-        The Science Quotes Bot has been initialized and is starting up.
+        The  has been initialized and is starting up.
         
         <p>Regular operations will begin shortly.</p>
         """
