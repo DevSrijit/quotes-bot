@@ -14,10 +14,13 @@ COPY . .
 # Create logs directory
 RUN mkdir -p logs
 
+# Make entrypoint script executable
+RUN chmod +x docker-entrypoint.sh
+
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV TZ=Asia/Kolkata
 ENV PYTHONPATH="/home/app/venv/lib/python3.13/site-packages:$PYTHONPATH"
 
-# Run the application
-CMD ["venv/bin/python", "src/main.py"]
+# Use entrypoint script
+ENTRYPOINT ["/home/app/docker-entrypoint.sh"]
