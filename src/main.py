@@ -9,18 +9,23 @@ from apscheduler.triggers.interval import IntervalTrigger
 from quote_generator import QuoteGenerator
 from image_generator import ImageGenerator
 from instagram_poster import InstagramPoster
+from monitoring import MonitoringService
 
 class ScienceQuotesBot:
     def __init__(self):
-        print("\nInitializing Science Quotes Bot...")
+        print("Initializing bot...")
         load_dotenv()
         self.quote_generator = QuoteGenerator()
         self.image_generator = ImageGenerator()
         self.instagram_poster = InstagramPoster()
+        self.monitoring = MonitoringService()
         self.ist_timezone = pytz.timezone('Asia/Kolkata')
+        self.last_error_time = None
+        self.error_reported = False
         print("Initialization complete.")
         
     def generate_and_post(self, test_mode=False):
+        """Generate a quote and post it to Instagram"""
         try:
             # Get current time in IST
             now = datetime.now(self.ist_timezone)
@@ -38,7 +43,9 @@ class ScienceQuotesBot:
             print("\n1. Generating quote...")
             quote_data = self.quote_generator.get_quote()
             if not quote_data:
-                print("Failed to generate quote")
+                error_msg = "Failed to generate quote"
+                print(error_msg)
+                self.monitoring.report_downtime(error_msg)
                 return
             print("Quote generated successfully!")
             print(f"Quote: {quote_data['quote']}")
@@ -50,6 +57,11 @@ class ScienceQuotesBot:
                 quote_data['quote'],
                 quote_data['author']
             )
+            if not image_path:
+                error_msg = "Failed to generate image"
+                print(error_msg)
+                self.monitoring.report_downtime(error_msg)
+                return
             print(f"Image generated successfully at: {image_path}")
             
             # Post to Instagram
@@ -61,20 +73,31 @@ class ScienceQuotesBot:
             
             if success:
                 print(f"\nPost completed successfully at {now.strftime('%I:%M %p IST')}")
+                if self.error_reported:
+                    self.monitoring.report_recovery()
+                    self.error_reported = False
             else:
-                print("\nPost failed!")
+                error_msg = "Failed to post to Instagram"
+                print(error_msg)
+                self.monitoring.report_downtime(error_msg)
             
         except Exception as e:
-            print(f"Error in generate_and_post: {str(e)}")
+            error_msg = f"Error in generate_and_post: {str(e)}"
+            print(error_msg)
             import traceback
             print("Full traceback:")
             print(traceback.format_exc())
+            self.monitoring.report_downtime(error_msg)
+            self.error_reported = True
     
     def run(self, test_mode=False):
         if test_mode:
             print("Running in test mode...")
             self.generate_and_post(test_mode=True)
             return
+        
+        # Report startup
+        self.monitoring.report_startup()
             
         # Calculate posting interval
         posts_per_day = int(os.getenv("POSTS_PER_DAY", "1"))

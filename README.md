@@ -105,6 +105,58 @@ kill <process_id>
 2. If Instagram login fails: Wait 24 hours before trying again (Instagram rate limiting)
 3. If image generation fails: Check if font download is working properly
 
+## Monitoring and Service Management
+
+### Email Monitoring
+The bot includes email-based monitoring using the Resend API. To enable monitoring:
+
+1. Add these variables to your `.env`:
+```env
+RESEND_API_KEY=your_resend_api_key
+MONITORING_EMAIL=your@email.com
+```
+
+The monitoring system will send emails for:
+- Service startup
+- Error notifications (rate limited to 1 per hour)
+- Service recovery notifications
+
+### Service Management with PM2
+
+PM2 is used for process management to ensure the bot stays running. Setup:
+
+1. Install PM2 globally:
+```bash
+npm install -g pm2
+```
+
+2. Start the bot:
+```bash
+pm2 start ecosystem.config.js
+```
+
+3. Other useful PM2 commands:
+```bash
+pm2 status                 # Check status
+pm2 logs science-quotes-bot # View logs
+pm2 restart science-quotes-bot # Restart service
+pm2 stop science-quotes-bot   # Stop service
+```
+
+4. Configure PM2 to start on system reboot:
+```bash
+# Generate startup script (no sudo required)
+pm2 startup
+# Copy and run the command it provides
+
+# Save current process list
+pm2 save
+```
+
+### Logs
+- Application logs: `./logs/instagram_bot.log`
+- PM2 logs: `./logs/pm2_out.log` and `./logs/pm2_error.log`
+
 ## Project Structure
 
 - `src/main.py`: Main script that orchestrates the entire process
