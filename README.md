@@ -1,4 +1,4 @@
-# Science Quotes Instagram Bot
+# Quotes Bot
 
 An automated Instagram bot that posts aesthetic science quotes with beautiful gradient backgrounds.
 
@@ -51,6 +51,8 @@ GEMINI_API_KEY=your_gemini_api_key
 INSTAGRAM_USERNAME=your_instagram_username
 INSTAGRAM_PASSWORD=your_instagram_password
 POSTS_PER_DAY=1
+RESEND_API_KEY=your_resend_api_key
+MONITORING_EMAIL=your@email.com
 ```
 
 ### Testing Quote and Image Generation
@@ -121,52 +123,7 @@ The monitoring system will send emails for:
 - Error notifications (rate limited to 1 per hour)
 - Service recovery notifications
 
-### Service Management with PM2 (No Root Access)
-
-1. Install PM2 globally:
-```bash
-npm install -g pm2
-```
-
-2. Make the scripts executable:
-```bash
-chmod +x start.sh restart.sh
-```
-
-3. Start the bot:
-```bash
-./restart.sh
-```
-
-4. Set up auto-restart using crontab:
-```bash
-# Open crontab editor
-crontab -e
-
-# Add these lines:
-@reboot cd /home/srijit/quotes-bot && ./restart.sh
-*/5 * * * * cd /home/srijit/quotes-bot && ./restart.sh
-```
-
-This setup will:
-- Start the bot when your user logs in (@reboot)
-- Check every 5 minutes if the bot is running and restart if needed
-- Keep PM2 process list saved
-- No root access required
-
-5. Other useful PM2 commands:
-```bash
-pm2 status                 # Check status
-pm2 logs science-quotes-bot # View logs
-pm2 restart science-quotes-bot # Restart service
-pm2 stop science-quotes-bot   # Stop service
-```
-
-### Logs
-- Application logs: `./logs/instagram_bot.log`
-- PM2 logs: `./logs/pm2_out.log` and `./logs/pm2_error.log`
-
-## Running as a System Service on Raspberry Pi
+## Running as a System Service on Linux
 
 To run this application as a system service that starts on boot and automatically restarts:
 
@@ -242,7 +199,7 @@ The `ImageGenerator` class uses several parameters that can be tuned to customiz
 - `grain`: 0.015 (noise intensity - higher = more grainy texture)
 
 ### Color Generation
-- Uses 5 random colors for rich, varied gradients
+- Uses 3 random colors for rich, varied gradients
 - Colors are mixed using normalized Perlin noise bases
 - Each color gets its own noise layer offset by 5 units
 - Colors are blended smoothly using gaussian blur
