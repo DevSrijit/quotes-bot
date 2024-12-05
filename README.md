@@ -1,92 +1,190 @@
-# Quotable Science Bot
+# Science Quotes Instagram Bot
 
-An automated Instagram bot that generates and shares daily science and technology quotes with aesthetic designs.
+An automated Instagram bot that posts aesthetic science quotes with beautiful gradient backgrounds.
 
-## Setup on Hetzner (Shared Server)
+## Features
 
-### Prerequisites
-- Python 3.13
-- Docker (should be available on the shared server)
-- Access to a user-level directory
+- Generates unique science quotes using Google's Gemini 1.5 Pro API
+- Creates beautiful gradient backgrounds with grain effect
+- Dynamic text color selection for optimal readability
+- Automated posting with randomized schedules
+- Configurable posting frequency
+- Smart token management to prevent API limits
 
-### Installation
-1. Clone the repository:
+## Setup
+
+1. Install dependencies:
 ```bash
-cd ~
-git clone https://github.com/devsrijit/quotes-bot.git
-cd quotes-bot
+pip install -r requirements.txt
 ```
 
-2. Create environment file:
-```bash
-cp .env.example .env
-nano .env  # Edit with your credentials
+2. Create a `.env` file with the following variables:
+```env
+GEMINI_API_KEY=your_gemini_api_key
+INSTAGRAM_USERNAME=your_instagram_username
+INSTAGRAM_PASSWORD=your_instagram_password
+POSTS_PER_DAY=1  # or any number you prefer
 ```
 
-Required environment variables:
+3. Run the bot:
+```bash
+python src/main.py
+```
+
+## Running the Application
+
+### Setup
+1. Create and activate virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+```
+
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Set up environment variables in `.env`:
 ```
 GEMINI_API_KEY=your_gemini_api_key
 INSTAGRAM_USERNAME=your_instagram_username
 INSTAGRAM_PASSWORD=your_instagram_password
-POSTS_PER_DAY=2
-RESEND_API_KEY=your_resend_api_key
-MONITORING_EMAIL=your_monitoring_email
+POSTS_PER_DAY=1
 ```
 
-3. Run the setup script:
+### Testing Quote and Image Generation
 ```bash
-chmod +x setup.sh
-./setup.sh
+# Activate virtual environment (if not already activated)
+source venv/bin/activate
+
+# Run test script
+cd src
+python test_generation.py
 ```
 
-This will:
-- Create a Python virtual environment
-- Install all dependencies
-- Create necessary directories
-- Build and start the Docker container
-
-### Monitoring
-- Health checks run on localhost:4950
-- Email alerts for service status changes
-- Logs available in `./logs` directory
-
-### Managing the Service
-
-View logs:
+### Purging Chat History
+If you want to clear the Gemini chat history (useful when quotes start repeating):
 ```bash
-docker compose logs -f
+cd src
+python test_generation.py --purge
 ```
 
-Stop the service:
+### Running Instagram Bot
+1. First, test the connection:
 ```bash
-docker compose down
+cd src
+python main.py --test
 ```
 
-Restart the service:
+2. Run the bot in production mode:
 ```bash
-docker compose restart
+# Run in background with logging
+nohup python main.py > ../logs/instagram_bot.log 2>&1 &
+
+# Or run in foreground
+python main.py
 ```
 
-Run a test post:
+3. Monitor the logs:
 ```bash
-docker compose exec service python src/main.py --test
+tail -f logs/instagram_bot.log
 ```
 
-### Troubleshooting
-If you encounter issues:
-1. Check the logs: `docker compose logs -f`
-2. Verify the virtual environment: `source venv/bin/activate && pip list`
-3. Ensure all environment variables are set correctly
-4. Check disk space and memory usage
+### Stopping the Bot
+```bash
+# Find the process
+ps aux | grep "python main.py"
 
-## Features
-- Dynamic quote generation using Google Gemini AI
-- Beautiful image generation with multi-layered gradients
-- Instagram posting via instagrapi
-- Timezone-aware scheduling
-- Error monitoring and alerts
-- Health checks
-- Docker containerization
+# Kill the process
+kill <process_id>
+```
 
-## Support
-For issues or questions, contact: mail@srijit.co
+### Common Issues
+1. If quotes start repeating: Run `python test_generation.py --purge` to clear chat history
+2. If Instagram login fails: Wait 24 hours before trying again (Instagram rate limiting)
+3. If image generation fails: Check if font download is working properly
+
+## Project Structure
+
+- `src/main.py`: Main script that orchestrates the entire process
+- `src/quote_generator.py`: Handles quote generation using Gemini API
+- `src/image_generator.py`: Creates beautiful gradient images with quotes
+- `src/instagram_poster.py`: Handles Instagram posting
+
+## Design Specifications
+
+- Image Size: 1080x1080 pixels
+- Font: Playfair Display
+- Font Size: 55px
+- Side Padding: 130px
+- Background: Dynamic grainy gradient
+- Text Color: Automatically selected for optimal contrast
+
+## Image Generation Parameters
+
+The `ImageGenerator` class uses several parameters that can be tuned to customize the image output:
+
+### Image Dimensions
+- `WIDTH`, `HEIGHT`: 1080x1080 pixels (Instagram square format)
+- `PADDING`: 130 pixels (space between text and image edge)
+
+### Typography
+- `FONT_SIZE`: 55 pixels
+- `LINE_SPACING`: 55 pixels (space between quote and author)
+- Font: Playfair Display (downloaded dynamically)
+
+### Gradient Generation
+- `scale`: 4.0 (controls size of blob patterns - higher = larger blobs)
+- `octaves`: 2 (number of noise layers - higher = more detail)
+- `persistence`: 0.5 (how much each octave contributes)
+- `lacunarity`: 2.0 (how frequency increases with each octave)
+- `sigma`: 30 (gaussian blur intensity - higher = smoother transitions)
+- `grain`: 0.015 (noise intensity - higher = more grainy texture)
+
+### Color Generation
+- Uses 5 random colors for rich, varied gradients
+- Colors are mixed using normalized Perlin noise bases
+- Each color gets its own noise layer offset by 5 units
+- Colors are blended smoothly using gaussian blur
+- Final image includes subtle grain effect for texture
+
+### Text Formatting
+- Quotes are wrapped in quotation marks
+- Authors are prefixed with "~" and end with a period
+- Text color adapts to background brightness
+- Text is center-aligned both horizontally and vertically
+
+### Fine-tuning Tips
+1. For larger, smoother blobs:
+   - Increase `scale`
+   - Decrease `octaves`
+   - Increase `sigma`
+
+2. For more detailed, intricate patterns:
+   - Decrease `scale`
+   - Increase `octaves`
+   - Decrease `sigma`
+
+3. For color variation:
+   - Modify the color generation logic in `generate_blobby_gradient()`
+   - Adjust the offset between noise layers (currently 5)
+
+4. For texture:
+   - Adjust `grain` value (0.01-0.02 recommended range)
+   - Modify gaussian blur `sigma` (20-50 recommended range)
+
+## Dependencies
+
+- google-generativeai: For quote generation
+- Pillow: Image processing
+- numpy: Numerical operations
+- instabot: Instagram API interaction
+- python-dotenv: Environment variable management
+- noise: Perlin noise for grain effect
+- colorthief: Color analysis
+- apscheduler: Scheduling posts
+
+## Note
+
+This bot uses the Instagram API through instabot. Be aware that Instagram's API policies may change, and excessive automation might lead to account restrictions. Use responsibly and consider Instagram's terms of service.
