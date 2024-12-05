@@ -107,18 +107,6 @@ class ScienceQuotesBot:
         # Report startup
         self.monitoring.report_startup()
             
-        # Calculate posting interval
-        posts_per_day = int(os.getenv("POSTS_PER_DAY", "1"))
-        active_hours = 14  # 9 AM to 11 PM
-        seconds_per_day = active_hours * 3600
-        
-        # Calculate interval between posts (n posts need n-1 intervals)
-        interval_seconds = seconds_per_day / (posts_per_day - 1) if posts_per_day > 1 else seconds_per_day
-        
-        # Add small randomness to interval (±15 minutes)
-        random_offset = random.randint(-900, 900)  # reduced from ±30 to ±15 minutes
-        interval_seconds += random_offset
-        
         # Create scheduler with IST timezone
         scheduler = BackgroundScheduler(timezone=self.ist_timezone)
         
@@ -127,6 +115,15 @@ class ScienceQuotesBot:
         start_time = now.replace(hour=9, minute=0, second=0, microsecond=0)  # 9 AM IST
         end_time = now.replace(hour=23, minute=0, second=0, microsecond=0)   # 11 PM IST
         
+        # Calculate posting interval for regular schedule
+        posts_per_day = int(os.getenv("POSTS_PER_DAY", "1"))
+        active_hours = 14  # 9 AM to 11 PM
+        seconds_per_day = active_hours * 3600
+        interval_seconds = seconds_per_day / (posts_per_day - 1) if posts_per_day > 1 else seconds_per_day
+        
+        # Add randomness to interval (±15 minutes) for regular scheduling
+        regular_interval = interval_seconds + random.randint(-900, 900)
+        
         # If current time is within posting hours (9 AM to 11 PM)
         if now.hour >= 9 and now.hour < 23:
             # If we have at least 1 hour before end time, schedule next post
@@ -134,28 +131,54 @@ class ScienceQuotesBot:
             if time_until_end >= 3600:  # At least 1 hour remaining
                 start_date = now + timedelta(minutes=random.randint(5, 15))  # Start in 5-15 minutes
                 logger.info("Service restarted during active hours. Scheduling next post soon.")
+                
+                # Schedule the immediate post
+                scheduler.add_job(
+                    self.generate_and_post,
+                    'date',
+                    run_date=start_date,
+                    timezone=self.ist_timezone
+                )
+                
+                # Schedule regular posts starting tomorrow
+                next_start = start_time + timedelta(days=1)
+                trigger = IntervalTrigger(
+                    seconds=regular_interval,
+                    start_date=next_start,
+                    timezone=self.ist_timezone
+                )
             else:
                 # Less than 1 hour remaining, schedule for tomorrow
                 start_date = start_time + timedelta(days=1)
                 logger.info("Too close to end time. Scheduling for tomorrow at 9 AM.")
+                trigger = IntervalTrigger(
+                    seconds=regular_interval,
+                    start_date=start_date,
+                    timezone=self.ist_timezone
+                )
         else:
             # Outside posting hours, schedule for next 9 AM
             if now.hour < 9:
                 start_date = start_time  # Today at 9 AM
             else:
                 start_date = start_time + timedelta(days=1)  # Tomorrow at 9 AM
-        logger.info(f"Bot started. First post scheduled for: {start_date.strftime('%I:%M %p IST')}")
-        logger.info(f"Posting interval: {interval_seconds/3600:.2f} hours")
-        
-        # Add job with IST timezone
-        scheduler.add_job(
-            self.generate_and_post,
-            IntervalTrigger(
-                seconds=int(interval_seconds),
+            
+            trigger = IntervalTrigger(
+                seconds=regular_interval,
                 start_date=start_date,
                 timezone=self.ist_timezone
             )
-        )
+        
+        # Add the regular interval job (if we haven't already added an immediate post)
+        if time_until_end < 3600 or now.hour < 9 or now.hour >= 23:
+            scheduler.add_job(
+                self.generate_and_post,
+                trigger,
+                timezone=self.ist_timezone
+            )
+        
+        logger.info(f"Bot started. First post scheduled for: {start_date.strftime('%I:%M %p IST')}")
+        logger.info(f"Regular posting interval: {regular_interval/3600:.2f} hours (base interval: {interval_seconds/3600:.2f} hours)")
         
         scheduler.start()
         
