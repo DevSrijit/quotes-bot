@@ -109,28 +109,41 @@ class ScienceQuotesBot:
             
         # Calculate posting interval
         posts_per_day = int(os.getenv("POSTS_PER_DAY", "1"))
-        seconds_per_day = 14 * 3600  # 14 hours (9 AM to 11 PM)
-        interval_seconds = seconds_per_day / posts_per_day
+        active_hours = 14  # 9 AM to 11 PM
+        seconds_per_day = active_hours * 3600
         
-        # Add some randomness to interval (±30 minutes)
-        random_offset = random.randint(-1800, 1800)
+        # Calculate interval between posts (n posts need n-1 intervals)
+        interval_seconds = seconds_per_day / (posts_per_day - 1) if posts_per_day > 1 else seconds_per_day
+        
+        # Add small randomness to interval (±15 minutes)
+        random_offset = random.randint(-900, 900)  # reduced from ±30 to ±15 minutes
         interval_seconds += random_offset
         
         # Create scheduler with IST timezone
         scheduler = BackgroundScheduler(timezone=self.ist_timezone)
         
-        # Schedule first post at next 9 AM IST if current time is outside posting hours
+        # Calculate first post time
         now = datetime.now(self.ist_timezone)
-        if now.hour < 9:
-            # Schedule for today 9 AM
-            start_date = now.replace(hour=9, minute=0, second=0, microsecond=0)
-        elif now.hour >= 23:
-            # Schedule for tomorrow 9 AM
-            start_date = (now + timedelta(days=1)).replace(hour=9, minute=0, second=0, microsecond=0)
+        start_time = now.replace(hour=9, minute=0, second=0, microsecond=0)  # 9 AM IST
+        end_time = now.replace(hour=23, minute=0, second=0, microsecond=0)   # 11 PM IST
+        
+        # If current time is within posting hours (9 AM to 11 PM)
+        if now.hour >= 9 and now.hour < 23:
+            # If we have at least 1 hour before end time, schedule next post
+            time_until_end = (end_time - now).total_seconds()
+            if time_until_end >= 3600:  # At least 1 hour remaining
+                start_date = now + timedelta(minutes=random.randint(5, 15))  # Start in 5-15 minutes
+                logger.info("Service restarted during active hours. Scheduling next post soon.")
+            else:
+                # Less than 1 hour remaining, schedule for tomorrow
+                start_date = start_time + timedelta(days=1)
+                logger.info("Too close to end time. Scheduling for tomorrow at 9 AM.")
         else:
-            # Schedule immediately
-            start_date = now
-            
+            # Outside posting hours, schedule for next 9 AM
+            if now.hour < 9:
+                start_date = start_time  # Today at 9 AM
+            else:
+                start_date = start_time + timedelta(days=1)  # Tomorrow at 9 AM
         logger.info(f"Bot started. First post scheduled for: {start_date.strftime('%I:%M %p IST')}")
         logger.info(f"Posting interval: {interval_seconds/3600:.2f} hours")
         
