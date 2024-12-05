@@ -13,8 +13,8 @@ An automated Instagram bot that generates and shares daily science and technolog
 1. Clone the repository to your home directory:
 ```bash
 cd ~
-git clone https://github.com/yourusername/science_quotes_instagram.git
-cd science_quotes_instagram
+git clone https://github.com/devsrijit/quotes-bot.git
+cd quotes-bot
 ```
 
 2. Create environment file:
@@ -35,7 +35,7 @@ MONITORING_EMAIL=your_monitoring_email
 
 3. Create required directories:
 ```bash
-mkdir -p ~/science_quotes_instagram/logs
+mkdir -p ~/quotes-bot/logs
 ```
 
 4. Start the bot:
@@ -51,7 +51,7 @@ docker-compose up -d
   - Critical errors
 
 ### Logs
-- Application logs are stored in `~/science_quotes_instagram/logs/`
+- Application logs are stored in `~/quotes-bot/logs/`
 - View Docker logs:
 ```bash
 docker-compose logs -f
@@ -84,4 +84,4 @@ docker-compose down
 - Docker containerization
 
 ## Support
-For issues or questions, contact: srijitghosh7331@gmail.com
+For issues or questions, contact: mail@srijit.co
