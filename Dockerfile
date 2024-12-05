@@ -1,27 +1,27 @@
-FROM python:3.13-alpine
+FROM python:3.13-slim
 
 WORKDIR /home/app
 
-# Install essential build dependencies
-RUN apk add --no-cache zlib-dev jpeg-dev gcc musl-dev g++ libffi-dev
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    zlib1g-dev libjpeg-dev gcc g++ libffi-dev && \
+    apt-get clean
 
 RUN python3 -m pip install --upgrade pip
 
-# Copy requirements first to leverage Docker cache
+# Copy requirements first
 COPY requirements.txt .
 
-# Install dependencies with pip
+# Install Python dependencies
 RUN pip install -r requirements.txt
 
-# Copy the rest of the application
+# Copy application code
 COPY . .
 
 # Create necessary directories
 RUN mkdir -p logs
 
-# Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV TZ=Asia/Kolkata
 
-# Command to run the application
 CMD ["python", "src/main.py"]
