@@ -1,18 +1,20 @@
 services:
   service:
-    build: .
+    build: 
+      context: .
+      network: host  # Use host network for building
     image: quotes-bot-service
     container_name: quotes-bot-service
     volumes:
       - ./logs:/home/app/logs
       - ./session.json:/home/app/session.json
+      - ./venv:/home/app/venv:ro  # Mount venv as read-only
     env_file:
       - .env
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:4950:8000"  # Map container's 8000 to host's 4950
+    network_mode: host  # Use host network mode for simplicity
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4950/health"]  # Use mapped port
+      test: ["CMD", "curl", "-f", "http://localhost:4950/health"]
       interval: 300s
       timeout: 10s
       retries: 3

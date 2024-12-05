@@ -1,16 +1,16 @@
-# Science Quotes Instagram Bot
+# Quotable Science Bot
 
 An automated Instagram bot that generates and shares daily science and technology quotes with aesthetic designs.
 
 ## Setup on Hetzner (Shared Server)
 
 ### Prerequisites
-- Python 3.8+
+- Python 3.13
 - Docker (should be available on the shared server)
 - Access to a user-level directory
 
 ### Installation
-1. Clone the repository to your home directory:
+1. Clone the repository:
 ```bash
 cd ~
 git clone https://github.com/devsrijit/quotes-bot.git
@@ -33,46 +33,51 @@ RESEND_API_KEY=your_resend_api_key
 MONITORING_EMAIL=your_monitoring_email
 ```
 
-3. Create required directories:
+3. Run the setup script:
 ```bash
-mkdir -p ~/quotes-bot/logs
+chmod +x setup.sh
+./setup.sh
 ```
 
-4. Start the bot:
-```bash
-docker-compose up -d
-```
+This will:
+- Create a Python virtual environment
+- Install all dependencies
+- Create necessary directories
+- Build and start the Docker container
 
 ### Monitoring
-- Health checks run on localhost:4950 (not publicly accessible)
-- Email alerts sent via Resend API for:
-  - Service downtime
-  - Service recovery
-  - Critical errors
+- Health checks run on localhost:4950
+- Email alerts for service status changes
+- Logs available in `./logs` directory
 
-### Logs
-- Application logs are stored in `~/quotes-bot/logs/`
-- View Docker logs:
+### Managing the Service
+
+View logs:
 ```bash
-docker-compose logs -f
+docker compose logs -f
 ```
 
-### Testing
+Stop the service:
+```bash
+docker compose down
+```
+
+Restart the service:
+```bash
+docker compose restart
+```
+
 Run a test post:
 ```bash
-docker-compose run --rm bot python src/main.py --test
+docker compose exec service python src/main.py --test
 ```
 
-### Maintenance
-- The bot uses session persistence to avoid frequent Instagram logins
-- Automatic restart on failure
-- Health monitoring with email alerts
-- Posts only between 9 AM and 11 PM IST
-
-### Stopping the Bot
-```bash
-docker-compose down
-```
+### Troubleshooting
+If you encounter issues:
+1. Check the logs: `docker compose logs -f`
+2. Verify the virtual environment: `source venv/bin/activate && pip list`
+3. Ensure all environment variables are set correctly
+4. Check disk space and memory usage
 
 ## Features
 - Dynamic quote generation using Google Gemini AI
