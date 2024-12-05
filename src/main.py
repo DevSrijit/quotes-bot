@@ -1,6 +1,7 @@
 import os
 import random
 import time
+import logging
 from datetime import datetime, timedelta
 import pytz
 from dotenv import load_dotenv
@@ -11,9 +12,16 @@ from image_generator import ImageGenerator
 from instagram_poster import InstagramPoster
 from monitoring import MonitoringService
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger('ScienceQuotesBot')
+
 class ScienceQuotesBot:
     def __init__(self):
-        print("Initializing bot...")
+        logger.info("Initializing bot...")
         load_dotenv()
         self.quote_generator = QuoteGenerator()
         self.image_generator = ImageGenerator()
@@ -22,7 +30,7 @@ class ScienceQuotesBot:
         self.ist_timezone = pytz.timezone('Asia/Kolkata')
         self.last_error_time = None
         self.error_reported = False
-        print("Initialization complete.")
+        logger.info("Initialization complete.")
         
     def generate_and_post(self, test_mode=False):
         """Generate a quote and post it to Instagram"""
@@ -31,68 +39,68 @@ class ScienceQuotesBot:
             now = datetime.now(self.ist_timezone)
             
             if test_mode:
-                print("\nRunning test post at", now.strftime('%I:%M %p IST'))
+                logger.info("\nRunning test post at %s", now.strftime('%I:%M %p IST'))
             else:
                 # Only check posting hours in non-test mode
                 if now.hour < 9 or now.hour >= 23:
-                    print(f"Outside posting hours (current time: {now.strftime('%I:%M %p IST')})")
+                    logger.info(f"Outside posting hours (current time: {now.strftime('%I:%M %p IST')})")
                     return
-                print(f"\nStarting post generation at {now.strftime('%I:%M %p IST')}")
+                logger.info(f"\nStarting post generation at {now.strftime('%I:%M %p IST')}")
             
             # Generate quote
-            print("\n1. Generating quote...")
+            logger.info("\n1. Generating quote...")
             quote_data = self.quote_generator.get_quote()
             if not quote_data:
                 error_msg = "Failed to generate quote"
-                print(error_msg)
+                logger.error(error_msg)
                 self.monitoring.report_downtime(error_msg)
                 return
-            print("Quote generated successfully!")
-            print(f"Quote: {quote_data['quote']}")
-            print(f"Author: {quote_data['author']}")
+            logger.info("Quote generated successfully!")
+            logger.info(f"Quote: {quote_data['quote']}")
+            logger.info(f"Author: {quote_data['author']}")
                 
             # Generate image
-            print("\n2. Generating image...")
+            logger.info("\n2. Generating image...")
             image_path = self.image_generator.create_quote_image(
                 quote_data['quote'],
                 quote_data['author']
             )
             if not image_path:
                 error_msg = "Failed to generate image"
-                print(error_msg)
+                logger.error(error_msg)
                 self.monitoring.report_downtime(error_msg)
                 return
-            print(f"Image generated successfully at: {image_path}")
+            logger.info(f"Image generated successfully at: {image_path}")
             
             # Post to Instagram
-            print("\n3. Posting to Instagram...")
+            logger.info("\n3. Posting to Instagram...")
             success = self.instagram_poster.post_image(
                 image_path,
                 quote_data['instagram_description']
             )
             
             if success:
-                print(f"\nPost completed successfully at {now.strftime('%I:%M %p IST')}")
+                logger.info(f"\nPost completed successfully at {now.strftime('%I:%M %p IST')}")
                 if self.error_reported:
                     self.monitoring.report_recovery()
                     self.error_reported = False
             else:
                 error_msg = "Failed to post to Instagram"
-                print(error_msg)
+                logger.error(error_msg)
                 self.monitoring.report_downtime(error_msg)
             
         except Exception as e:
             error_msg = f"Error in generate_and_post: {str(e)}"
-            print(error_msg)
+            logger.error(error_msg)
             import traceback
-            print("Full traceback:")
-            print(traceback.format_exc())
+            logger.error("Full traceback:")
+            logger.error(traceback.format_exc())
             self.monitoring.report_downtime(error_msg)
             self.error_reported = True
     
     def run(self, test_mode=False):
         if test_mode:
-            print("Running in test mode...")
+            logger.info("Running in test mode...")
             self.generate_and_post(test_mode=True)
             return
         
@@ -123,8 +131,8 @@ class ScienceQuotesBot:
             # Schedule immediately
             start_date = now
             
-        print(f"Bot started. First post scheduled for: {start_date.strftime('%I:%M %p IST')}")
-        print(f"Posting interval: {interval_seconds/3600:.2f} hours")
+        logger.info(f"Bot started. First post scheduled for: {start_date.strftime('%I:%M %p IST')}")
+        logger.info(f"Posting interval: {interval_seconds/3600:.2f} hours")
         
         # Add job with IST timezone
         scheduler.add_job(

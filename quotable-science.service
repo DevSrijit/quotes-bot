@@ -7,6 +7,8 @@ WorkingDirectory=/home/srijit/quotes-bot
 ExecStart=/home/srijit/quotes-bot/venv/bin/python /home/srijit/quotes-bot/src/main.py
 Restart=always
 RestartSec=10
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=default.target
