@@ -23,5 +23,13 @@ if [ ! -x "/home/app/venv/bin/python" ]; then
     exit 1
 fi
 
-echo "Virtual environment found, starting application..."
-exec /home/app/venv/bin/python src/main.py
+echo "Virtual environment found!"
+
+# Check if we're in interactive mode
+if [ "$1" = "--interactive" ]; then
+    echo "Starting interactive shell..."
+    exec /bin/bash
+else
+    echo "Starting application..."
+    exec /home/app/venv/bin/python src/main.py
+fi

@@ -11,9 +11,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy application code
 COPY . .
 
-# Create logs directory
-RUN mkdir -p logs
-
 # Make entrypoint script executable
 RUN chmod +x docker-entrypoint.sh
 
@@ -24,3 +21,5 @@ ENV PYTHONPATH="/home/app/venv/lib/python3.13/site-packages:$PYTHONPATH"
 
 # Use entrypoint script
 ENTRYPOINT ["/home/app/docker-entrypoint.sh"]
+# Default to non-interactive mode
+CMD []

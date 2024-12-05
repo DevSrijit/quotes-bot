@@ -13,6 +13,9 @@ services:
       - .env
     restart: unless-stopped
     network_mode: host  # Use host network mode for simplicity
+    # Use stdin_open and tty for interactive mode
+    stdin_open: true
+    tty: true
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4950/health"]
       interval: 300s
