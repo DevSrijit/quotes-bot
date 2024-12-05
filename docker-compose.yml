@@ -8,7 +8,6 @@ services:
     volumes:
       - ./logs:/home/app/logs
       - ./session.json:/home/app/session.json
-      - ${PWD}/venv:/home/app/venv:ro  # Use absolute path with PWD
     env_file:
       - .env
     restart: unless-stopped
