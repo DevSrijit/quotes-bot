@@ -38,7 +38,7 @@ class MonitoringService:
             now = datetime.now(self.ist_timezone).strftime("%I:%M %p IST, %d %b %Y")
             
             params = {
-                "from": "Quotable Sciencet <quotes@srijit.co>",
+                "from": "Quotable Science <quotes@srijit.co>",
                 "to": [self.monitoring_email],
                 "subject": f"[Quotable Science] {subject}",
                 "html": f"""
@@ -59,9 +59,9 @@ class MonitoringService:
 
     def report_downtime(self, error_details):
         """Report service downtime or critical errors"""
-        subject = "⚠️ Service Alert: Bot Encountered an Error"
+        subject = "⚠️ Service Alert: Automation Encountered an Error"
         content = f"""
-        The  has encountered an error and may need attention.
+        The automation has encountered an error and may need attention.
         
         <strong>Error Details:</strong><br>
         <pre>{error_details}</pre>
@@ -72,19 +72,19 @@ class MonitoringService:
 
     def report_recovery(self):
         """Report service recovery after downtime"""
-        subject = "✅ Service Recovery: Bot is Back Online"
+        subject = "✅ Service Recovery: Automation is Back Online"
         content = """
-        The  has recovered and is functioning normally again.
+        The automation has recovered and is functioning normally again.
         
-        <p>The service will continue to be monitored for any further issues.</p>
+        <p>The automation will continue to be monitored for any further issues.</p>
         """
         self._send_email(subject, content)
 
     def report_startup(self):
         """Report service startup"""
-        subject = "🚀 Service Started: Bot Initialized"
+        subject = "🚀 Service Started: Automation Initialized"
         content = """
-        The  has been initialized and is starting up.
+        The automation has been initialized and is starting up.
         
         <p>Regular operations will begin shortly.</p>
         """
