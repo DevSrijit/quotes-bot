@@ -49,7 +49,7 @@ def exchange_token(short_lived_token: str):
         data = response.json()
         long_lived_token = data.get("access_token")
         print("✅ Successfully exchanged for a long-lived token.")
-        update_env_file("INSTAGRAM_ACCESS_TOKEN", long_lived_token)
+        print(f"🔑 Long-lived token: {long_lived_token}")  # Print the token directly
         return long_lived_token
     else:
         raise Exception(f"Error exchanging token: {response.json()}")
