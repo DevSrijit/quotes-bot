@@ -99,6 +99,46 @@ class ScienceQuotesBot:
             self.monitoring.report_downtime(error_msg)
             self.error_reported = True
     
+    def calculate_posts_for_remaining_time(self, current_hour, posts_per_day, active_start, active_end):
+        """Calculate how many posts to make in remaining time of the day"""
+        if current_hour >= active_end or current_hour < active_start:
+            return 0
+            
+        total_active_hours = active_end - active_start
+        remaining_hours = active_end - current_hour
+        
+        # Calculate posts proportionally to remaining time
+        remaining_posts = int((remaining_hours / total_active_hours) * posts_per_day)
+        return remaining_posts
+
+    def schedule_day_posts(self, scheduler, start_hour, end_hour, num_posts, is_today=False):
+        """Schedule posts for a specific day period"""
+        if num_posts == 0:
+            return
+            
+        active_window_hours = end_hour - start_hour
+        interval_hours = active_window_hours / num_posts
+        
+        for i in range(num_posts):
+            # Calculate base hour for this post
+            post_hour = start_hour + (i * interval_hours)
+            
+            # For today's posts, skip if the calculated hour has already passed
+            if is_today and post_hour <= datetime.now(self.ist_timezone).hour:
+                continue
+                
+            # Add the job with a cron schedule
+            scheduler.add_job(
+                self.generate_and_post,
+                trigger=CronTrigger(
+                    hour=int(post_hour),
+                    minute=random.randint(0, 59),  # Random minute for each post
+                    timezone=self.ist_timezone
+                ),
+                name=f'post_job_{i}'
+            )
+            logger.info(f"Scheduled post {i+1}/{num_posts} at approximately {int(post_hour):02d}:XX IST")
+
     def run(self, test_mode=False):
         """Run the bot with scheduling"""
         try:
@@ -111,16 +151,36 @@ class ScienceQuotesBot:
             self.monitoring.report_startup()
             
             scheduler = BackgroundScheduler()
+            posts_per_day = int(os.getenv('POSTS_PER_DAY', 1))
+            active_hours_start = 9  # 9 AM IST
+            active_hours_end = 23   # 11 PM IST
             
-            # Add posting job
-            posting_trigger = IntervalTrigger(
-                hours=24/int(os.getenv('POSTS_PER_DAY', 1)),
-                jitter=1800  # 30 minutes of randomness
+            # Get current time in IST
+            now = datetime.now(self.ist_timezone)
+            current_hour = now.hour
+            
+            # Handle today's remaining posts
+            remaining_posts = self.calculate_posts_for_remaining_time(
+                current_hour, posts_per_day, active_hours_start, active_hours_end
             )
-            scheduler.add_job(
-                self.generate_and_post,
-                trigger=posting_trigger,
-                name='post_job'
+            
+            if remaining_posts > 0:
+                logger.info(f"Scheduling {remaining_posts} posts for remaining time today")
+                self.schedule_day_posts(
+                    scheduler, 
+                    max(current_hour + 1, active_hours_start), 
+                    active_hours_end, 
+                    remaining_posts,
+                    is_today=True
+                )
+            
+            # Schedule regular posts for subsequent days
+            logger.info(f"Setting up regular schedule with {posts_per_day} posts per day")
+            self.schedule_day_posts(
+                scheduler,
+                active_hours_start,
+                active_hours_end,
+                posts_per_day
             )
             
             # Add token expiration check job - run daily at midnight IST
@@ -136,9 +196,6 @@ class ScienceQuotesBot:
             
             scheduler.start()
             logger.info("Scheduler started. Bot is running...")
-            
-            # Run first post immediately
-            self.generate_and_post()
             
             # Keep the script running
             try:
