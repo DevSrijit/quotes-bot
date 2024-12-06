@@ -12,3 +12,4 @@ opencv-python>=4.8.0
 scipy>=1.12.0
 pytz>=2024.1
 resend
+supabase>=2.3.0
