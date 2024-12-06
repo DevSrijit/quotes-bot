@@ -1,79 +1,99 @@
 import os
 from dotenv import load_dotenv
 from pathlib import Path
-from instagram_poster import InstagramPoster
+import requests
 import argparse
 
-def update_env_file(token: str):
-    """Update the INSTAGRAM_ACCESS_TOKEN in .env file"""
+def update_env_file(key: str, value: str):
+    """Update a specific key in the .env file"""
     env_path = Path(__file__).parent.parent / '.env'
-    
-    # Read current env file
+
+    # Read the current env file
+    if not env_path.exists():
+        with open(env_path, 'w'): pass  # Create if it doesn't exist
     with open(env_path, 'r') as f:
         lines = f.readlines()
-    
-    # Update or add the token
-    token_updated = False
+
+    # Update or add the key
+    key_updated = False
     for i, line in enumerate(lines):
-        if line.startswith('INSTAGRAM_ACCESS_TOKEN='):
-            lines[i] = f'INSTAGRAM_ACCESS_TOKEN={token}\n'
-            token_updated = True
+        if line.startswith(f'{key}='):
+            lines[i] = f'{key}={value}\n'
+            key_updated = True
             break
-    
-    if not token_updated:
-        lines.append(f'INSTAGRAM_ACCESS_TOKEN={token}\n')
-    
-    # Write back to env file
+
+    if not key_updated:
+        lines.append(f'{key}={value}\n')
+
+    # Write back to the env file
     with open(env_path, 'w') as f:
         f.writelines(lines)
 
-def exchange_token(short_lived_token: str = None):
-    """Exchange a short-lived token for a long-lived one and update .env"""
-    try:
-        # Initialize Instagram poster
-        instagram = InstagramPoster()
-        
-        # Exchange token
-        print("Exchanging token...")
-        long_lived_token = instagram.exchange_token(short_lived_token)
-        
-        # Get token info
-        token_info = instagram.get_token_info(long_lived_token)
-        expires_at = token_info.get('expires_at', 0)
-        
-        if expires_at == 0:
-            print("✅ Successfully obtained a never-expiring token!")
-        else:
-            import datetime
-            expiry_date = datetime.datetime.fromtimestamp(expires_at)
-            print(f"✅ Successfully obtained a long-lived token!")
-            print(f"Token will expire on: {expiry_date}")
-        
-        # Update .env file
-        print("\nUpdating .env file...")
-        update_env_file(long_lived_token)
-        print("✅ Updated INSTAGRAM_ACCESS_TOKEN in .env file")
-        
-        print("\n🎉 Token exchange complete! Your Instagram bot is ready to go.")
-        
-    except Exception as e:
-        print(f"❌ Error exchanging token: {str(e)}")
-        print("\nPlease make sure you have:")
-        print("1. Added META_APP_ID and META_APP_SECRET to your .env file")
-        print("2. Have a valid short-lived token")
-        print("3. Have proper permissions set up in your Meta App")
+    print(f"✅ Updated {key} in .env file")
+
+def exchange_token(short_lived_token: str):
+    """Exchange short-lived token for long-lived token"""
+    print("Exchanging short-lived token for long-lived token...")
+    app_secret = os.getenv("META_APP_SECRET")
+    url = "https://graph.instagram.com/access_token"
+    params = {
+        "grant_type": "ig_exchange_token",
+        "client_secret": app_secret,
+        "access_token": short_lived_token
+    }
+
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        data = response.json()
+        long_lived_token = data.get("access_token")
+        expires_in = data.get("expires_in")
+        print(f"✅ Long-lived token obtained! Expires in {expires_in // (24 * 60 * 60)} days.")
+        update_env_file("INSTAGRAM_ACCESS_TOKEN", long_lived_token)
+        return long_lived_token
+    else:
+        raise Exception(f"Error exchanging token: {response.json()}")
+
+def refresh_long_lived_token(long_lived_token: str):
+    """Refresh long-lived token"""
+    print("Refreshing long-lived token...")
+    url = "https://graph.instagram.com/refresh_access_token"
+    params = {
+        "grant_type": "ig_refresh_token",
+        "access_token": long_lived_token
+    }
+
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        data = response.json()
+        refreshed_token = data.get("access_token")
+        expires_in = data.get("expires_in")
+        print(f"✅ Long-lived token refreshed! Expires in {expires_in // (24 * 60 * 60)} days.")
+        update_env_file("INSTAGRAM_ACCESS_TOKEN", refreshed_token)
+        return refreshed_token
+    else:
+        raise Exception(f"Error refreshing token: {response.json()}")
 
 def main():
-    parser = argparse.ArgumentParser(description='Exchange Instagram API tokens')
-    parser.add_argument('--token', help='Short-lived token to exchange. If not provided, uses token from .env')
-    
+    parser = argparse.ArgumentParser(description='Instagram API Token Management')
+    parser.add_argument('--exchange', help='Short-lived token to exchange for a long-lived token')
+    parser.add_argument('--refresh', action='store_true', help='Refresh long-lived token')
+
     args = parser.parse_args()
-    
+
     # Load environment variables
     load_dotenv()
-    
-    # Exchange token
-    exchange_token(args.token)
+
+    if args.exchange:
+        # Exchange short-lived token
+        exchange_token(args.exchange)
+    elif args.refresh:
+        # Refresh long-lived token
+        long_lived_token = os.getenv("INSTAGRAM_ACCESS_TOKEN")
+        if not long_lived_token:
+            raise Exception("❌ INSTAGRAM_ACCESS_TOKEN is not set in .env")
+        refresh_long_lived_token(long_lived_token)
+    else:
+        print("❌ Please provide --exchange or --refresh argument")
 
 if __name__ == "__main__":
     main()

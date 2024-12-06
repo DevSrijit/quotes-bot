@@ -3,6 +3,7 @@ import time
 import resend
 from datetime import datetime, timedelta
 import pytz
+from token_manager import refresh_long_lived_token
 
 class MonitoringService:
     def __init__(self):
@@ -62,25 +63,68 @@ class MonitoringService:
             print(f"Failed to send monitoring email: {str(e)}")
 
     def check_token_expiration(self):
-        """Check if the Instagram Graph API token is nearing expiration"""
+        """Check if the Instagram Graph API token is nearing expiration and refresh if needed"""
         now = datetime.now(self.ist_timezone)
         token_expiry = self.token_creation_date + timedelta(days=60)  # Tokens expire after 60 days
         days_until_expiry = (token_expiry - now).days
         
-        # Only send alert if within 7 days of expiry and days are positive
-        if 0 <= days_until_expiry <= 7:  # Alert when 7 or fewer days remain
-            subject = "🔑 Instagram Token Expiration Alert"
-            content = f"""
-            Your Instagram Graph API token will expire in {days_until_expiry} days!
-            
-            <strong>Token Details:</strong><br>
-            Creation Date: {self.token_creation_date.strftime('%d %B %Y')}<br>
-            Expiry Date: {token_expiry.strftime('%d %B %Y')}<br>
-            Days Remaining: {days_until_expiry}
-            
-            <p>Please generate a new long-lived access token before expiration to ensure uninterrupted service.</p>
-            """
-            self._send_email(subject, content)
+        # Refresh token when 7 or fewer days remain
+        if 0 <= days_until_expiry <= 7:
+            try:
+                # Get current token from env
+                current_token = os.getenv("INSTAGRAM_ACCESS_TOKEN")
+                if not current_token:
+                    raise Exception("INSTAGRAM_ACCESS_TOKEN not found in environment")
+                
+                # Attempt to refresh the token
+                refreshed_token = refresh_long_lived_token(current_token)
+                if refreshed_token:
+                    # Update token creation date to today
+                    self.token_creation_date = now
+                    
+                    subject = "✅ Instagram Token Refreshed Successfully"
+                    content = f"""
+                    Your Instagram Graph API token has been automatically refreshed.
+                    
+                    <strong>Token Details:</strong><br>
+                    Previous Creation Date: {token_expiry.strftime('%d %B %Y')}<br>
+                    New Creation Date: {now.strftime('%d %B %Y')}<br>
+                    New Expiry Date: {(now + timedelta(days=60)).strftime('%d %B %Y')}
+                    """
+                    self._send_email(subject, content)
+                    
+            except Exception as e:
+                # If automatic refresh fails, send an alert email
+                subject = "⚠️ Instagram Token Refresh Failed"
+                content = f"""
+                Failed to automatically refresh your Instagram Graph API token!
+                
+                <strong>Error Details:</strong><br>
+                <pre>{str(e)}</pre>
+                
+                <strong>Token Details:</strong><br>
+                Creation Date: {self.token_creation_date.strftime('%d %B %Y')}<br>
+                Expiry Date: {token_expiry.strftime('%d %B %Y')}<br>
+                Days Remaining: {days_until_expiry}
+                
+                <p>Please manually generate a new long-lived access token before expiration to ensure uninterrupted service.</p>
+                """
+                self._send_email(subject, content)
+        else:
+            # Only send alert if within 7 days of expiry and days are positive
+            if 0 <= days_until_expiry <= 7:  # Alert when 7 or fewer days remain
+                subject = "🔑 Instagram Token Expiration Alert"
+                content = f"""
+                Your Instagram Graph API token will expire in {days_until_expiry} days!
+                
+                <strong>Token Details:</strong><br>
+                Creation Date: {self.token_creation_date.strftime('%d %B %Y')}<br>
+                Expiry Date: {token_expiry.strftime('%d %B %Y')}<br>
+                Days Remaining: {days_until_expiry}
+                
+                <p>Please generate a new long-lived access token before expiration to ensure uninterrupted service.</p>
+                """
+                self._send_email(subject, content)
 
     def report_downtime(self, error_details):
         """Report service downtime or critical errors"""
