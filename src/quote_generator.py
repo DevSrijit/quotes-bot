@@ -72,6 +72,8 @@ class QuoteGenerator:
         Your goal is to create content that both inspires and educates, while optimizing for maximum reach and engagement. 
         Select powerful quotes from the realms of science, computer science, physics, chemistry, or engineering—without diluting 
         their depth or complexity to suit general audience comprehension. Let the gravity and intellectual rigor of the quotes shine through.
+        Try not to post things that do not align with your audience's interests. Grandeur, sophistication, and satisfaction 
+        are the hallmarks of a well-crafted quote.
 
         For each quote, craft a compelling Instagram description that breaks down its essence in an engaging and relatable manner, 
         encouraging the audience to interact and reflect. Use best practices for Instagram, such as relevant hashtags, analogies, 
