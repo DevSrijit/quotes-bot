@@ -21,9 +21,12 @@ pip install -r requirements.txt
 2. Create a `.env` file with the following variables:
 ```env
 GEMINI_API_KEY=your_gemini_api_key
-INSTAGRAM_USERNAME=your_instagram_username
-INSTAGRAM_PASSWORD=your_instagram_password
+INSTAGRAM_ACCESS_TOKEN=your_instagram_graph_api_token
+FACEBOOK_PAGE_ID=your_facebook_page_id
+INSTAGRAM_ACCOUNT_ID=your_instagram_business_account_id
 POSTS_PER_DAY=1  # or any number you prefer
+RESEND_API_KEY=your_resend_api_key
+MONITORING_EMAIL=your@email.com
 ```
 
 3. Run the bot:
@@ -48,8 +51,9 @@ pip install -r requirements.txt
 3. Set up environment variables in `.env`:
 ```
 GEMINI_API_KEY=your_gemini_api_key
-INSTAGRAM_USERNAME=your_instagram_username
-INSTAGRAM_PASSWORD=your_instagram_password
+INSTAGRAM_ACCESS_TOKEN=your_instagram_graph_api_token
+FACEBOOK_PAGE_ID=your_facebook_page_id
+INSTAGRAM_ACCOUNT_ID=your_instagram_business_account_id
 POSTS_PER_DAY=1
 RESEND_API_KEY=your_resend_api_key
 MONITORING_EMAIL=your@email.com

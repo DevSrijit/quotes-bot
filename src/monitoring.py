@@ -1,7 +1,7 @@
 import os
 import time
 import resend
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 
 class MonitoringService:
@@ -10,12 +10,16 @@ class MonitoringService:
         self.monitoring_email = os.getenv("MONITORING_EMAIL")
         self.ist_timezone = pytz.timezone('Asia/Kolkata')
         self.last_notification_time = None
+        self.token_creation_date = datetime(2023, 12, 6, tzinfo=self.ist_timezone)  # Token created on Dec 6, 2023
         
         if not self.resend_api_key or not self.monitoring_email:
             print("Warning: RESEND_API_KEY or MONITORING_EMAIL not set. Monitoring disabled.")
             return
             
         resend.api_key = self.resend_api_key
+        
+        # Check token expiration on startup
+        self.check_token_expiration()
 
     def _can_send_notification(self):
         """Rate limit notifications to once per hour"""
@@ -57,6 +61,26 @@ class MonitoringService:
         except Exception as e:
             print(f"Failed to send monitoring email: {str(e)}")
 
+    def check_token_expiration(self):
+        """Check if the Instagram Graph API token is nearing expiration"""
+        now = datetime.now(self.ist_timezone)
+        token_expiry = self.token_creation_date + timedelta(days=60)  # Tokens expire after 60 days
+        days_until_expiry = (token_expiry - now).days
+        
+        if days_until_expiry <= 7:  # Alert when 7 or fewer days remain
+            subject = "🔑 Instagram Token Expiration Alert"
+            content = f"""
+            Your Instagram Graph API token will expire in {days_until_expiry} days!
+            
+            <strong>Token Details:</strong><br>
+            Creation Date: {self.token_creation_date.strftime('%d %B %Y')}<br>
+            Expiry Date: {token_expiry.strftime('%d %B %Y')}<br>
+            Days Remaining: {days_until_expiry}
+            
+            <p>Please generate a new long-lived access token before expiration to ensure uninterrupted service.</p>
+            """
+            self._send_email(subject, content)
+
     def report_downtime(self, error_details):
         """Report service downtime or critical errors"""
         subject = "⚠️ Service Alert: Automation Encountered an Error"
@@ -89,3 +113,6 @@ class MonitoringService:
         <p>Regular operations will begin shortly.</p>
         """
         self._send_email(subject, content)
+        
+        # Check token expiration on startup
+        self.check_token_expiration()

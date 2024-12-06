@@ -1,7 +1,7 @@
 google-generativeai>=0.3.0
 pillow>=10.0.0
 numpy>=1.24.0
-instagrapi>=2.0.0
+facebook-business>=17.0.0
 python-dotenv>=1.0.0
 noise>=1.2.2
 colorthief>=0.2.1

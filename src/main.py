@@ -7,6 +7,7 @@ import pytz
 from dotenv import load_dotenv
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.triggers.cron import CronTrigger
 from quote_generator import QuoteGenerator
 from image_generator import ImageGenerator
 from instagram_poster import InstagramPoster
@@ -99,96 +100,62 @@ class ScienceQuotesBot:
             self.error_reported = True
     
     def run(self, test_mode=False):
-        if test_mode:
-            logger.info("Running in test mode...")
-            self.generate_and_post(test_mode=True)
-            return
-        
-        # Report startup
-        self.monitoring.report_startup()
-            
-        # Create scheduler with IST timezone
-        scheduler = BackgroundScheduler(timezone=self.ist_timezone)
-        
-        # Calculate first post time
-        now = datetime.now(self.ist_timezone)
-        start_time = now.replace(hour=9, minute=0, second=0, microsecond=0)  # 9 AM IST
-        end_time = now.replace(hour=23, minute=0, second=0, microsecond=0)   # 11 PM IST
-        
-        # Calculate posting interval for regular schedule
-        posts_per_day = int(os.getenv("POSTS_PER_DAY", "1"))
-        active_hours = 14  # 9 AM to 11 PM
-        seconds_per_day = active_hours * 3600
-        interval_seconds = seconds_per_day / (posts_per_day - 1) if posts_per_day > 1 else seconds_per_day
-        
-        # Add randomness to interval (±15 minutes) for regular scheduling
-        regular_interval = interval_seconds + random.randint(-900, 900)
-        
-        # If current time is within posting hours (9 AM to 11 PM)
-        if now.hour >= 9 and now.hour < 23:
-            # If we have at least 1 hour before end time, schedule next post
-            time_until_end = (end_time - now).total_seconds()
-            if time_until_end >= 3600:  # At least 1 hour remaining
-                start_date = now + timedelta(minutes=random.randint(5, 15))  # Start in 5-15 minutes
-                logger.info("Service restarted during active hours. Scheduling next post soon.")
+        """Run the bot with scheduling"""
+        try:
+            if test_mode:
+                logger.info("Running in test mode...")
+                self.generate_and_post(test_mode=True)
+                return
                 
-                # Schedule the immediate post
-                scheduler.add_job(
-                    self.generate_and_post,
-                    'date',
-                    run_date=start_date,
-                    timezone=self.ist_timezone
-                )
-                
-                # Schedule regular posts starting tomorrow
-                next_start = start_time + timedelta(days=1)
-                trigger = IntervalTrigger(
-                    seconds=regular_interval,
-                    start_date=next_start,
-                    timezone=self.ist_timezone
-                )
-            else:
-                # Less than 1 hour remaining, schedule for tomorrow
-                start_date = start_time + timedelta(days=1)
-                logger.info("Too close to end time. Scheduling for tomorrow at 9 AM.")
-                trigger = IntervalTrigger(
-                    seconds=regular_interval,
-                    start_date=start_date,
-                    timezone=self.ist_timezone
-                )
-        else:
-            # Outside posting hours, schedule for next 9 AM
-            if now.hour < 9:
-                start_date = start_time  # Today at 9 AM
-            else:
-                start_date = start_time + timedelta(days=1)  # Tomorrow at 9 AM
+            logger.info("Starting bot in production mode...")
+            self.monitoring.report_startup()
             
-            trigger = IntervalTrigger(
-                seconds=regular_interval,
-                start_date=start_date,
-                timezone=self.ist_timezone
+            scheduler = BackgroundScheduler()
+            
+            # Add posting job
+            posting_trigger = IntervalTrigger(
+                hours=24/int(os.getenv('POSTS_PER_DAY', 1)),
+                jitter=1800  # 30 minutes of randomness
             )
-        
-        # Add the regular interval job (if we haven't already added an immediate post)
-        if time_until_end < 3600 or now.hour < 9 or now.hour >= 23:
             scheduler.add_job(
                 self.generate_and_post,
-                trigger,
-                timezone=self.ist_timezone
+                trigger=posting_trigger,
+                name='post_job'
             )
-        
-        logger.info(f"Bot started. First post scheduled for: {start_date.strftime('%I:%M %p IST')}")
-        logger.info(f"Regular posting interval: {regular_interval/3600:.2f} hours (base interval: {interval_seconds/3600:.2f} hours)")
-        
-        scheduler.start()
-        
-        try:
+            
+            # Add token expiration check job - run daily at midnight IST
+            scheduler.add_job(
+                self.monitoring.check_token_expiration,
+                trigger=CronTrigger(
+                    hour=0,
+                    minute=0,
+                    timezone=self.ist_timezone
+                ),
+                name='token_check_job'
+            )
+            
+            scheduler.start()
+            logger.info("Scheduler started. Bot is running...")
+            
+            # Run first post immediately
+            self.generate_and_post()
+            
             # Keep the script running
-            while True:
-                time.sleep(1)
-        except (KeyboardInterrupt, SystemExit):
-            scheduler.shutdown()
-
+            try:
+                while True:
+                    time.sleep(60)
+            except (KeyboardInterrupt, SystemExit):
+                scheduler.shutdown()
+                logger.info("Bot stopped by user")
+                
+        except Exception as e:
+            error_msg = f"Error in run: {str(e)}"
+            logger.error(error_msg)
+            import traceback
+            logger.error("Full traceback:")
+            logger.error(traceback.format_exc())
+            self.monitoring.report_downtime(error_msg)
+    
 if __name__ == "__main__":
     import sys
     bot = ScienceQuotesBot()
