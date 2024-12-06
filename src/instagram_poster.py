@@ -6,14 +6,75 @@ import json
 import logging
 import tempfile
 import urllib.parse
+from datetime import datetime, timezone
 
 class InstagramPoster:
     def __init__(self):
         print("Initializing Instagram Graph API client...")
         self.access_token = os.getenv("INSTAGRAM_ACCESS_TOKEN")
+        self.app_id = os.getenv("META_APP_ID")
+        self.app_secret = os.getenv("META_APP_SECRET")
         self.instagram_account_id = os.getenv("INSTAGRAM_ACCOUNT_ID")
         self.api_version = "v21.0"
         self.base_url = f"https://graph.facebook.com/{self.api_version}"
+
+    def exchange_token(self, short_lived_token: str = None) -> str:
+        """Exchange a short-lived token for a long-lived one"""
+        if not self.app_id or not self.app_secret:
+            raise Exception("META_APP_ID and META_APP_SECRET environment variables are required")
+        
+        token_to_exchange = short_lived_token or self.access_token
+        
+        url = f"https://graph.facebook.com/{self.api_version}/oauth/access_token"
+        params = {
+            'grant_type': 'fb_exchange_token',
+            'client_id': self.app_id,
+            'client_secret': self.app_secret,
+            'fb_exchange_token': token_to_exchange
+        }
+        
+        response = requests.get(url, params=params)
+        if response.status_code != 200:
+            raise Exception(f"Failed to exchange token: {response.text}")
+            
+        data = response.json()
+        return data.get('access_token')
+
+    def get_token_info(self, token: str = None) -> dict:
+        """Get information about an access token"""
+        token_to_check = token or self.access_token
+        
+        url = f"https://graph.facebook.com/debug_token"
+        params = {
+            'input_token': token_to_check,
+            'access_token': f"{self.app_id}|{self.app_secret}"
+        }
+        
+        response = requests.get(url, params=params)
+        if response.status_code != 200:
+            raise Exception(f"Failed to get token info: {response.text}")
+            
+        data = response.json()
+        return data.get('data', {})
+
+    def is_token_valid(self) -> bool:
+        """Check if the current access token is valid and not expired"""
+        try:
+            token_info = self.get_token_info()
+            if not token_info.get('is_valid'):
+                return False
+                
+            # Check expiration
+            expires_at = token_info.get('expires_at', 0)
+            if expires_at == 0:  # Never expires
+                return True
+                
+            now = int(time.time())
+            return now < expires_at
+            
+        except Exception as e:
+            print(f"Error checking token validity: {str(e)}")
+            return False
 
     def upload_to_imgbb(self, image_path: str) -> str:
         """Upload image to imgbb and return the URL"""
@@ -43,6 +104,10 @@ class InstagramPoster:
         """Validate credentials and check publishing limit"""
         try:
             print("Validating Instagram Business Account credentials...")
+            
+            # First check token validity
+            if not self.is_token_valid():
+                raise Exception("Access token is invalid or expired. Please refresh the token.")
             
             # Check account info
             url = f"{self.base_url}/{self.instagram_account_id}"
