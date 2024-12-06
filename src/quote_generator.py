@@ -6,6 +6,7 @@ from typing import Dict, List
 from dotenv import load_dotenv
 import pickle
 from pathlib import Path
+from db_sync import DatabaseSync
 
 load_dotenv()
 
@@ -58,14 +59,23 @@ class QuoteGenerator:
         else:
             self.chat_history = []
             
+        self.db_sync = DatabaseSync()
         self.initialize_chat()
 
     def initialize_chat(self):
         self.chat_session = self.model.start_chat(history=self.chat_history)
         
     def save_history(self):
+        """Save chat history locally and sync to cloud"""
+        # Save locally
         with open(self.history_file, 'wb') as f:
             pickle.dump(self.chat_history, f)
+            
+        # Sync with cloud
+        try:
+            self.db_sync.sync_databases()
+        except Exception as e:
+            print(f"Warning: Failed to sync with cloud: {e}")
         
     def get_quote(self) -> Dict:
         prompt = """You are managing an Instagram account that posts daily, aesthetic, and thought-provoking science-related quotes.        
