@@ -67,7 +67,8 @@ class MonitoringService:
         token_expiry = self.token_creation_date + timedelta(days=60)  # Tokens expire after 60 days
         days_until_expiry = (token_expiry - now).days
         
-        if days_until_expiry <= 7:  # Alert when 7 or fewer days remain
+        # Only send alert if within 7 days of expiry and days are positive
+        if 0 <= days_until_expiry <= 7:  # Alert when 7 or fewer days remain
             subject = "🔑 Instagram Token Expiration Alert"
             content = f"""
             Your Instagram Graph API token will expire in {days_until_expiry} days!
