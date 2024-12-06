@@ -13,7 +13,7 @@ class QuoteGenerator:
     def __init__(self):
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
         self.generation_config = {
-            "temperature": 1.5,
+            "temperature": 0.5,
             "top_p": 0.95,
             "top_k": 40,
             "max_output_tokens": 8192,
