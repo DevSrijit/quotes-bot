@@ -3,7 +3,9 @@ import time
 import requests
 from pathlib import Path
 import json
-import base64
+import logging
+import tempfile
+import urllib.parse
 
 class InstagramPoster:
     def __init__(self):
@@ -12,6 +14,30 @@ class InstagramPoster:
         self.instagram_account_id = os.getenv("INSTAGRAM_ACCOUNT_ID")
         self.api_version = "v21.0"
         self.base_url = f"https://graph.facebook.com/{self.api_version}"
+
+    def upload_to_imgbb(self, image_path: str) -> str:
+        """Upload image to imgbb and return the URL"""
+        imgbb_key = os.getenv("IMGBB_API_KEY")
+        if not imgbb_key:
+            raise Exception("IMGBBB_API_KEY environment variable is required")
+        
+        print("Uploading image to temporary hosting...")
+        with open(image_path, 'rb') as image_file:
+            files = {'image': image_file}
+            response = requests.post(
+                'https://api.imgbb.com/1/upload',
+                params={'key': imgbb_key, 'expiration': 600},
+                files=files
+            )
+            
+            if response.status_code != 200:
+                raise Exception(f"Failed to upload to imgbb: {response.text}")
+            
+            data = response.json()
+            if not data.get('success'):
+                raise Exception(f"imgbb upload failed: {data}")
+                
+            return data['data']['url']
         
     def validate_credentials(self):
         """Validate credentials and check publishing limit"""
@@ -93,52 +119,54 @@ class InstagramPoster:
             
             print(f"Creating media container for image: {image_path}")
             
-            # Step 1: Create the media container
+            # First upload the image to a temporary hosting service
+            image_url = self.upload_to_imgbb(image_path)
+            print(f"Image uploaded to temporary URL: {image_url}")
+            
+            # Create the media container
             container_url = f"{self.base_url}/{self.instagram_account_id}/media"
             
-            # Convert image to base64 for direct upload
-            with open(image_path, 'rb') as image_file:
-                image_data = base64.b64encode(image_file.read()).decode('utf-8')
-                
-                params = {
-                    'access_token': self.access_token,
-                    'image_url': f"data:image/jpeg;base64,{image_data}",
-                    'caption': caption
-                }
-                
-                response = requests.post(container_url, params=params)
-                if response.status_code != 200:
-                    raise Exception(f"Failed to create media container: {response.text}")
-                
-                container_data = response.json()
-                if 'id' not in container_data:
-                    raise Exception(f"No container ID in response: {response.text}")
-                
-                container_id = container_data['id']
-                print(f"Created container with ID: {container_id}")
-                
-                # Wait for container to be ready
-                self.wait_for_container_ready(container_id)
-                
-                # Step 2: Publish the container
-                publish_url = f"{self.base_url}/{self.instagram_account_id}/media_publish"
-                publish_params = {
-                    'creation_id': container_id,
-                    'access_token': self.access_token
-                }
-                
-                publish_response = requests.post(publish_url, params=publish_params)
-                if publish_response.status_code != 200:
-                    raise Exception(f"Failed to publish media: {publish_response.text}")
-                
-                media_id = publish_response.json().get('id')
-                print(f"Successfully published to Instagram. Media ID: {media_id}")
+            # Prepare the parameters
+            params = {
+                'image_url': image_url,
+                'caption': caption,
+                'access_token': self.access_token
+            }
+            
+            # Create the container
+            response = requests.post(container_url, params=params)
+            if response.status_code != 200:
+                raise Exception(f"Failed to create media container: {response.text}")
+            
+            container_data = response.json()
+            if 'id' not in container_data:
+                raise Exception(f"No container ID in response: {response.text}")
+            
+            container_id = container_data['id']
+            print(f"Created container with ID: {container_id}")
+            
+            # Wait for container to be ready
+            self.wait_for_container_ready(container_id)
+            
+            # Step 2: Publish the container
+            publish_url = f"{self.base_url}/{self.instagram_account_id}/media_publish"
+            publish_params = {
+                'creation_id': container_id,
+                'access_token': self.access_token
+            }
+            
+            publish_response = requests.post(publish_url, params=publish_params)
+            if publish_response.status_code != 200:
+                raise Exception(f"Failed to publish media: {publish_response.text}")
+            
+            media_id = publish_response.json().get('id')
+            print(f"Successfully published to Instagram. Media ID: {media_id}")
             
             # Clean up the image file
             if os.path.exists(image_path):
                 print(f"Cleaning up image file: {image_path}")
                 os.remove(image_path)
-                
+            
             return True
             
         except Exception as e:
