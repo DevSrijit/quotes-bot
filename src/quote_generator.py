@@ -76,7 +76,9 @@ class QuoteGenerator:
         For each quote, craft a compelling Instagram description that breaks down its essence in an engaging and relatable manner, 
         encouraging the audience to interact and reflect. Use best practices for Instagram, such as relevant hashtags, analogies, 
         and calls to action, to enhance visibility and connection with the audience. Do not repeat a quote that has been provided 
-        in the chat history, if provided so.
+        in the chat history, if provided so. Using the chat history, try not to create an author bias on the quotes,
+        feel free to use infinite quotes from a single author, BUT do not use quotes from the SAME author more than once in 6 generations to
+        keep your content fresh and engaging.
         
         Important: Do not include citations or references in your response. Only provide the quote, author, and Instagram description 
         in the requested JSON format. Including anything else will lead to breaking the API constraints. STRICTLY follow the Structued Output Schema provided."""
