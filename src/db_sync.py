@@ -97,8 +97,10 @@ class DatabaseSync:
                 }
                 for entry in cloud_history
             ]
+            # Reconstruct history with proper prompts
+            restored_history = self.reconstruct_history_with_prompts(restored_history)
             self.save_local_history(restored_history)
-            print("Successfully restored from cloud backup")
+            print("Successfully restored from cloud backup with model prompts")
 
         elif local_history and not cloud_history:
             # Case 1: Local history exists but cloud is empty
@@ -123,8 +125,10 @@ class DatabaseSync:
                 }
                 for entry in cloud_history
             ]
+            # Reconstruct history with proper prompts
+            restored_history = self.reconstruct_history_with_prompts(restored_history)
             self.save_local_history(restored_history)
-            print("Successfully restored from cloud backup")
+            print("Successfully restored from cloud backup with model prompts")
         else:
             print("No cloud backup available")
 
@@ -150,6 +154,41 @@ class DatabaseSync:
             print("Pruning completed successfully")
         except Exception as e:
             print(f"Error during pruning: {e}")
+
+    def get_model_prompt(self) -> str:
+        """Get the standard model prompt"""
+        return """You are managing an Instagram account that posts daily, aesthetic, and thought-provoking science-related quotes.        
+    Your goal is to create content that both inspires and educates, while optimizing for maximum reach and engagement. 
+    Select powerful quotes from the realms of science, computer science, physics, chemistry, or engineering—without diluting 
+    their depth or complexity to suit general audience comprehension. Let the gravity and intellectual rigor of the quotes shine through.
+    Try not to post things that do not align with your audience's interests. Grandeur, sophistication, and satisfaction 
+    are the hallmarks of a well-crafted quote.
+
+    For each quote, craft a compelling Instagram description that breaks down its essence in an engaging and relatable manner, 
+    encouraging the audience to interact and reflect. Use best practices for Instagram, such as relevant hashtags, analogies, 
+    and calls to action, to enhance visibility and connection with the audience. Do not repeat a quote that has been provided 
+    in the chat history, if provided so. Using the chat history, try not to create an author bias on the quotes,
+    feel free to use infinite quotes from a single author, BUT do not use quotes from the SAME author more than once in 6 generations to
+    keep your content fresh and engaging.
+    
+    Important: Do not include citations or references in your response. Only provide the quote, author, and Instagram description 
+    in the requested JSON format. Including anything else will lead to breaking the API constraints. STRICTLY follow the Structued Output Schema provided."""
+
+    def reconstruct_history_with_prompts(self, history: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Reconstruct history with proper model prompts"""
+        model_prompt = self.get_model_prompt()
+        reconstructed_history = []
+        
+        for i, entry in enumerate(history):
+            if entry['role'] == 'model':
+                # Add the user prompt before each model response
+                reconstructed_history.append({
+                    'role': 'user',
+                    'parts': [model_prompt]
+                })
+            reconstructed_history.append(entry)
+        
+        return reconstructed_history
 
     def _is_prompt_entry(self, entry: Dict[str, Any]) -> bool:
         """Check if entry contains the repetitive prompt"""
