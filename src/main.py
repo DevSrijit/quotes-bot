@@ -101,11 +101,20 @@ class ScienceQuotesBot:
     
     def calculate_posts_for_remaining_time(self, current_hour, posts_per_day, active_start, active_end):
         """Calculate how many posts to make in remaining time of the day"""
-        if current_hour >= active_end or current_hour < active_start:
-            return 0
+        # Handle cross-day schedule (9 AM to 3 AM next day)
+        if active_end < active_start:  # e.g., end at 3 (next day) vs start at 9
+            if current_hour >= active_start:  # After start (9 AM onwards)
+                remaining_hours = (24 - current_hour) + active_end
+            elif current_hour < active_end:  # Early hours next day (before 3 AM)
+                remaining_hours = active_end - current_hour
+            else:  # Between end and start (3 AM to 9 AM)
+                return 0
+        else:
+            if current_hour >= active_end or current_hour < active_start:
+                return 0
+            remaining_hours = active_end - current_hour
             
-        total_active_hours = active_end - active_start
-        remaining_hours = active_end - current_hour
+        total_active_hours = (24 - active_start + active_end) if active_end < active_start else (active_end - active_start)
         
         # Calculate posts proportionally to remaining time
         remaining_posts = int((remaining_hours / total_active_hours) * posts_per_day)
@@ -116,16 +125,21 @@ class ScienceQuotesBot:
         if num_posts == 0:
             return
             
-        active_window_hours = end_hour - start_hour
-        interval_hours = active_window_hours / num_posts
+        # Handle cross-day schedule
+        total_hours = (24 - start_hour + end_hour) if end_hour < start_hour else (end_hour - start_hour)
+        interval_hours = total_hours / num_posts
         
         for i in range(num_posts):
             # Calculate base hour for this post
-            post_hour = start_hour + (i * interval_hours)
+            raw_hour = start_hour + (i * interval_hours)
+            # Adjust hour if it goes past midnight
+            post_hour = raw_hour if raw_hour < 24 else (raw_hour - 24)
             
             # For today's posts, skip if the calculated hour has already passed
-            if is_today and post_hour <= datetime.now(self.ist_timezone).hour:
-                continue
+            if is_today:
+                current_hour = datetime.now(self.ist_timezone).hour
+                if post_hour <= current_hour and (post_hour > end_hour or current_hour < end_hour):
+                    continue
                 
             # Add the job with a cron schedule
             scheduler.add_job(
@@ -153,7 +167,7 @@ class ScienceQuotesBot:
             scheduler = BackgroundScheduler()
             posts_per_day = int(os.getenv('POSTS_PER_DAY', 1))
             active_hours_start = 9  # 9 AM IST
-            active_hours_end = 23   # 11 PM IST
+            active_hours_end = 3   # 3 AM IST (next day)
             
             # Get current time in IST
             now = datetime.now(self.ist_timezone)
@@ -183,12 +197,12 @@ class ScienceQuotesBot:
                 posts_per_day
             )
             
-            # Add token expiration check job - run daily at midnight IST
+            # Add token expiration check job - run daily at 8:30 AM IST (before posting starts)
             scheduler.add_job(
                 self.monitoring.check_token_expiration,
                 trigger=CronTrigger(
-                    hour=0,
-                    minute=0,
+                    hour=8,
+                    minute=30,
                     timezone=self.ist_timezone
                 ),
                 name='token_check_job'
