@@ -43,7 +43,7 @@ class ScienceQuotesBot:
                 logger.info("\nRunning test post at %s", now.strftime('%I:%M %p IST'))
             else:
                 # Only check posting hours in non-test mode
-                if now.hour < 9 or now.hour >= 23:
+                if now.hour < 9 or now.hour >= 3:
                     logger.info(f"Outside posting hours (current time: {now.strftime('%I:%M %p IST')})")
                     return
                 logger.info(f"\nStarting post generation at {now.strftime('%I:%M %p IST')}")
@@ -166,8 +166,8 @@ class ScienceQuotesBot:
             
             scheduler = BackgroundScheduler()
             posts_per_day = int(os.getenv('POSTS_PER_DAY', 1))
-            active_hours_start = 9  # 9 AM IST
-            active_hours_end = 3   # 3 AM IST (next day)
+            active_hours_start = 18  # 6 PM IST
+            active_hours_end = 2   # 2 AM IST (next day)
             
             # Get current time in IST
             now = datetime.now(self.ist_timezone)
