@@ -134,8 +134,8 @@ class InstagramPoster:
             if limit_response.status_code == 200:
                 limit_data = limit_response.json().get('data', [{}])[0]
                 quota_usage = limit_data.get('quota_usage', 0)
-                print(f"Publishing quota usage: {quota_usage}/50 posts in last 24 hours")
-                if quota_usage >= 50:
+                print(f"Publishing quota usage: {quota_usage}/20 posts in last 24 hours")
+                if quota_usage >= 20:
                     raise Exception("Publishing quota exceeded. Please wait.")
             
             return True
