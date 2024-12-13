@@ -6,6 +6,7 @@ from typing import Dict, List
 from dotenv import load_dotenv
 import pickle
 from pathlib import Path
+from db_sync import DatabaseSync
 
 load_dotenv()
 
@@ -48,6 +49,9 @@ class QuoteGenerator:
         self.history_dir.mkdir(exist_ok=True)
         self.history_file = self.history_dir / "chat_history.pkl"
         
+        # Initialize database sync
+        self.db_sync = DatabaseSync()
+        
         # Load existing chat history if it exists
         if self.history_file.exists():
             try:
@@ -66,6 +70,9 @@ class QuoteGenerator:
     def save_history(self):
         with open(self.history_file, 'wb') as f:
             pickle.dump(self.chat_history, f)
+        
+        # Sync with Supabase
+        self.db_sync.sync_databases()
         
     def get_quote(self) -> Dict:
         prompt = """You are managing an Instagram account that posts daily, aesthetic, and thought-provoking science-related quotes.        
