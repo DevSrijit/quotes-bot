@@ -86,15 +86,51 @@ class QuoteGenerator:
         encouraging the audience to interact and reflect. Use best practices for Instagram, such as relevant hashtags, analogies, 
         and calls to action, to enhance visibility and connection with the audience. Do not repeat a quote that has been provided 
         in the chat history, if provided so. Using the chat history, try not to create an author bias on the quotes,
-        feel free to use infinite quotes from a single author, BUT do not use quotes from the SAME author more than once in 6 generations to
+        feel free to use infinite quotes from a single author, BUT do not use quotes from the SAME author more than once in 3 generations to
         keep your content fresh and engaging.
         
-        Important: Do not include citations or references in your response. Only provide the quote, author, and Instagram description 
+        Important: DO NOT include citations/references/links in your response. Only provide the quote, author, and Instagram description 
         in the requested JSON format. Including anything else will lead to breaking the API constraints. STRICTLY follow the Structued Output Schema provided."""
         
         try:
             response = self.chat_session.send_message(prompt)
-            quote_data = json.loads(response.text.strip('```json\n').strip('```'))
+            
+            # Check if response has citations
+            if hasattr(response, 'candidates') and response.candidates:
+                candidate = response.candidates[0]
+                if hasattr(candidate, 'finish_reason') and candidate.finish_reason == 'RECITATION':
+                    # If we got a citation, try again with a more strict prompt
+                    strict_prompt = "Generate ONLY a JSON object with these exact fields: quote, author, and instagram_description. No citations or references."
+                    response = self.chat_session.send_message(strict_prompt)
+            
+            # Get the actual text content
+            content = response.text if hasattr(response, 'text') else response.parts[0].text
+            
+            # Clean the response - remove any markdown formatting or extra content
+            content = content.strip()
+            if content.startswith('```json'):
+                content = content[7:]
+            if content.startswith('```'):
+                content = content[3:]
+            if content.endswith('```'):
+                content = content[:-3]
+            content = content.strip()
+            
+            # Try to extract just the JSON part if there's extra text
+            try:
+                start_idx = content.find('{')
+                end_idx = content.rfind('}') + 1
+                if start_idx >= 0 and end_idx > start_idx:
+                    content = content[start_idx:end_idx]
+            except:
+                pass
+            
+            quote_data = json.loads(content)
+            
+            # Validate the required fields
+            required_fields = ['quote', 'author', 'instagram_description']
+            if not all(field in quote_data for field in required_fields):
+                raise ValueError("Missing required fields in response")
             
             # Update chat history
             self.chat_history.extend([
@@ -105,7 +141,7 @@ class QuoteGenerator:
             # Save updated history
             self.save_history()
             
-            # Check token count and reset if needed (approximate calculation)
+            # Check token count and reset if needed
             if len(str(self.chat_history)) > 800000:  # Conservative limit
                 self.chat_history = []
                 self.initialize_chat()
