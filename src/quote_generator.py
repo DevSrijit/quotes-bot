@@ -102,17 +102,14 @@ class QuoteGenerator:
         strict_prompt = "Generate ONLY a JSON object with these exact fields: quote, author, and instagram_description. No citations or references. Do not include hashtags."
 
         predefined_hashtags = [
-            "#sciencequotes", "#sciencefictionquotes", "#quotesscience", "#quotesaboutscience",
+            "#sciencequotes", "#sciencefictionquotes", "#quotesaboutscience",
             "#datasciencequotes", "#astronomy", "#womeninstem",
-            "#cosmology", "#spacescience", "#quoteslife", "#quotedaily",
-            "#sciencefictionbooks", "#scienceworld",
-            "#chemistryfacts", "#scifiquotes", "#science", "#physics", "#universe", "#space",
-            "#cosmos", "#fact", "#engineering", "#didyouknow", "#technology", "#quotesdaily",
-            "#quotestagram", "#quotes", "#quotesaboutlife", "#quotesoflife", "#nasa",
-            "#knowledge", "#biology", "#factz", "#chemistry", "#education",
-            "#tech", "#astrophysics", "#physicsquotes", "#sciencefacts",
-            "#technologicalquotes", "#techquotes", "#sciencelife",
-            "#einsteinquotes", "#scienceofmind", "#coding", "#computerscience"
+            "#spacescience", "#quoteslife", "#scienceworld", "#scifiquotes",
+            "#science", "#physics", "#universe", "#space", "#cosmos",
+            "#fact", "#engineering", "#technology", "#nasa", "#knowledge",
+            "#biology", "#education", "#tech", "#astrophysics",
+            "#physicsquotes", "#sciencefacts", "#sciencelife",
+            "#einsteinquotes", "#scienceofmind", "#computerscience"
         ]
 
         try:
