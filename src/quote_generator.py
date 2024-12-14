@@ -97,7 +97,7 @@ class QuoteGenerator:
         keep your content fresh and engaging.
         
         Important: DO NOT include citations/references/links in your response. Only provide the quote, author, and Instagram description 
-        in the requested JSON format. Including anything else will lead to breaking the API constraints. STRICTLY follow the Structured Output Schema provided."""
+        in the requested JSON format. Including anything else will lead to breaking the API constraints. STRICTLY follow the Structured Output Schema provided. NEVER REPEAT quotes that have been generated in the chat history."""
         
         strict_prompt = "Generate ONLY a JSON object with these exact fields: quote, author, and instagram_description. No citations or references. Do not include hashtags."
 
@@ -126,14 +126,7 @@ class QuoteGenerator:
             # Get the actual text content
             content = response.text if hasattr(response, 'text') else response.parts[0].text
             
-            # Remove existing hashtags
-            content = re.sub(r'#\w+', '', content)
-            
-            # Append top 30 predefined hashtags
-            hashtags = ' '.join(predefined_hashtags[:30])
-            content += f" {hashtags}"
-            
-            # Clean the response - remove any markdown formatting or extra content
+            # Clean and parse JSON
             content = content.strip()
             if content.startswith('```json'):
                 content = content[7:]
@@ -141,9 +134,8 @@ class QuoteGenerator:
                 content = content[3:]
             if content.endswith('```'):
                 content = content[:-3]
-            content = content.strip()
             
-            # Try to extract just the JSON part if there's extra text
+            # Extract JSON
             try:
                 start_idx = content.find('{')
                 end_idx = content.rfind('}') + 1
@@ -153,6 +145,13 @@ class QuoteGenerator:
                 pass
             
             quote_data = json.loads(content)
+            
+            # Remove any existing hashtags from instagram_description
+            quote_data['instagram_description'] = re.sub(r'#\w+', '', quote_data['instagram_description'])
+            
+            # Append ALL predefined hashtags
+            hashtags = ' '.join(predefined_hashtags)
+            quote_data['instagram_description'] = quote_data['instagram_description'].strip() + ' ' + hashtags
             
             # Validate the required fields
             required_fields = ['quote', 'author', 'instagram_description']
