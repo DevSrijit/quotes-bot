@@ -8,6 +8,7 @@ import pickle
 from pathlib import Path
 from db_sync import DatabaseSync
 import logging
+import re
 
 # Get module logger
 logger = logging.getLogger(__name__)
@@ -98,7 +99,20 @@ class QuoteGenerator:
         Important: DO NOT include citations/references/links in your response. Only provide the quote, author, and Instagram description 
         in the requested JSON format. Including anything else will lead to breaking the API constraints. STRICTLY follow the Structured Output Schema provided."""
         
-        strict_prompt = "Generate ONLY a JSON object with these exact fields: quote, author, and instagram_description. No citations or references."
+        strict_prompt = "Generate ONLY a JSON object with these exact fields: quote, author, and instagram_description. No citations or references. Do not include hashtags."
+
+        predefined_hashtags = [
+            "#sciencequotes", "#quotesscience", "#quotesaboutscience",
+            "#datasciencequotes", "#astronomy", "#womeninstem",
+            "#cosmology", "#spacescience", "#quotedaily",
+            "#sciencefictionbooks", "#scienceworld", "#chemistryfacts",
+            "#scifiquotes", "#science", "#physics", "#universe",
+            "#space", "#cosmos", "#fact", "#engineering",
+            "#didyouknow", "#technology", "#quotesdaily",
+            "#quotestagram", "#quotes", "#quotesaboutlife",
+            "#nasa", "#knowledge", "#biology", "#tech",
+            "#astrophysics"
+        ]
 
         try:
             logger.info("Requesting quote from Gemini API...")
@@ -113,6 +127,13 @@ class QuoteGenerator:
             
             # Get the actual text content
             content = response.text if hasattr(response, 'text') else response.parts[0].text
+            
+            # Remove existing hashtags
+            content = re.sub(r'#\w+', '', content)
+            
+            # Append top 30 predefined hashtags
+            hashtags = ' '.join(predefined_hashtags[:30])
+            content += f" {hashtags}"
             
             # Clean the response - remove any markdown formatting or extra content
             content = content.strip()
