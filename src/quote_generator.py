@@ -8,6 +8,7 @@ import pickle
 from pathlib import Path
 from db_sync import DatabaseSync
 import logging
+import re  # Add this import at the top
 
 # Get module logger
 logger = logging.getLogger(__name__)
@@ -96,7 +97,8 @@ class QuoteGenerator:
         keep your content fresh and engaging.
         
         Important: DO NOT include citations/references/links in your response. Only provide the quote, author, and Instagram description 
-        in the requested JSON format. Including anything else will lead to breaking the API constraints. STRICTLY follow the Structured Output Schema provided."""
+        in the requested JSON format. Including anything else will lead to breaking the API constraints. STRICTLY follow the Structured Output Schema provided.
+        Always put the hashtags at the end of the Instagram description."""
         
         strict_prompt = "Generate ONLY a JSON object with these exact fields: quote, author, and instagram_description. No citations or references."
 
@@ -155,6 +157,40 @@ class QuoteGenerator:
                 self.initialize_chat()
                 self.save_history()
             
+            # List of predefined hashtags
+            predefined_hashtags = [
+                "#sciencequotes", "#sciencefictionquotes", "#quotesscience", "#quotesaboutscience",
+                "#datasciencequotes", "#astronomy", "#sciencefiction", "#womeninstem",
+                "#sciencememes", "#cosmology", "#spacescience", "#quoteslife", "#quotedaily",
+                "#chemistrynotes", "#scicomm", "#womeninfinance", "#lifescience",
+                "#sciencecommunication", "#girlsintech", "#sciencefictionbooks", "#scienceworld",
+                "#chemistryfacts", "#scifiquotes", "#science", "#physics", "#universe", "#space",
+                "#cosmos", "#fact", "#engineering", "#didyouknow", "#technology", "#quotesdaily",
+                "#quotestagram", "#quotes", "#quotesaboutlife", "#quotesoflife", "#nasa",
+                "#knowledge", "#dailyfacts", "#biology", "#factz", "#chemistry", "#astronomy",
+                "#education", "#earth", "#memes", "#amazing", "#nature", "#allfacts", "#tech",
+                "#innovation", "#astrophysics", "#physicsquotes", "#sciencefacts",
+                "#technologicalquotes", "#techquotes", "#bestquotes", "#sciencelife",
+                "#einsteinquotes", "#scienceofmind"
+            ]
+
+            # Process the instagram_description
+            description = quote_data['instagram_description']
+
+            # Extract existing hashtags from the description
+            existing_hashtags = re.findall(r'#\w+', description)
+
+            # Remove existing hashtags from the description
+            description_without_hashtags = re.sub(r'#\w+', '', description).strip()
+
+            # Combine existing and predefined hashtags, remove duplicates
+            all_hashtags = list(set(existing_hashtags + predefined_hashtags))
+
+            # Ensure hashtags are at the end of the description
+            quote_data['instagram_description'] = (
+                f"{description_without_hashtags}\n\n{' '.join(all_hashtags)}"
+            )
+
             logger.debug(f"Raw response: {response}")
             return quote_data
             
