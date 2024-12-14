@@ -141,9 +141,9 @@ class ScienceQuotesBot:
                 if post_hour <= current_hour and (post_hour > end_hour or current_hour < end_hour):
                     continue
                 
-            # Schedule the job with exception handling
+            # Add the job with a cron schedule
             scheduler.add_job(
-                self._safe_generate_and_post,  # Use a wrapper method
+                self.generate_and_post,
                 trigger=CronTrigger(
                     hour=int(post_hour),
                     minute=random.randint(0, 59),  # Random minute for each post
@@ -151,16 +151,7 @@ class ScienceQuotesBot:
                 ),
                 name=f'post_job_{i}'
             )
-            logging.info(f"Scheduled post {i+1}/{num_posts} at approximately {int(post_hour):02d}:XX IST")
-
-    def _safe_generate_and_post(self):
-        """Wrapper to handle exceptions during scheduled posts"""
-        try:
-            self.generate_and_post()
-            logging.info("Post successfully published.")
-        except Exception as e:
-            logging.error(f"Error during scheduled post: {e}")
-            self.monitoring.report_downtime(str(e))
+            logger.info(f"Scheduled post {i+1}/{num_posts} at approximately {int(post_hour):02d}:XX IST")
 
     def run(self, test_mode=False):
         """Run the bot with scheduling"""
