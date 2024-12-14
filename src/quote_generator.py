@@ -90,8 +90,10 @@ class QuoteGenerator:
         keep your content fresh and engaging.
         
         Important: DO NOT include citations/references/links in your response. Only provide the quote, author, and Instagram description 
-        in the requested JSON format. Including anything else will lead to breaking the API constraints. STRICTLY follow the Structued Output Schema provided."""
+        in the requested JSON format. Including anything else will lead to breaking the API constraints. STRICTLY follow the Structured Output Schema provided."""
         
+        strict_prompt = "Generate ONLY a JSON object with these exact fields: quote, author, and instagram_description. No citations or references."
+
         try:
             response = self.chat_session.send_message(prompt)
             
@@ -100,7 +102,6 @@ class QuoteGenerator:
                 candidate = response.candidates[0]
                 if hasattr(candidate, 'finish_reason') and candidate.finish_reason == 'RECITATION':
                     # If we got a citation, try again with a more strict prompt
-                    strict_prompt = "Generate ONLY a JSON object with these exact fields: quote, author, and instagram_description. No citations or references."
                     response = self.chat_session.send_message(strict_prompt)
             
             # Get the actual text content
