@@ -10,6 +10,17 @@ import textwrap
 import requests
 from pathlib import Path
 from scipy.ndimage import gaussian_filter
+import logging
+
+# Configure root logger with proper format for systemd/journalctl
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+# Get logger for this module
+logger = logging.getLogger(__name__)
 
 class ImageGenerator:
     def __init__(self):
@@ -28,16 +39,18 @@ class ImageGenerator:
         
         # Download font if not exists
         if not self.font_path.exists():
-            print("Downloading Playfair Display font...")
+            logger.info("Downloading Playfair Display font...")
             font_url = "https://cloud-bi14k3e70-hack-club-bot.vercel.app/0playfairdisplay-regular.ttf"
             response = requests.get(font_url)
             if response.status_code == 200:
                 self.font_path.write_bytes(response.content)
-                print("Font downloaded successfully!")
+                logger.info("Font downloaded successfully!")
             else:
+                logger.error("Failed to download font!")
                 raise Exception("Failed to download font!")
 
     def generate_blobby_gradient(self) -> Image.Image:
+        logger.debug("Generating blobby gradient background...")
         # Create base image
         img = np.zeros((self.HEIGHT, self.WIDTH, 3), dtype=np.float32)
         

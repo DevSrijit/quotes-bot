@@ -7,11 +7,16 @@ from dotenv import load_dotenv
 import pickle
 from pathlib import Path
 from db_sync import DatabaseSync
+import logging
+
+# Get module logger
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
 class QuoteGenerator:
     def __init__(self):
+        logger.info("Initializing QuoteGenerator...")
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
         self.generation_config = {
             "temperature": 0.75,
@@ -75,6 +80,7 @@ class QuoteGenerator:
         self.db_sync.sync_databases()
         
     def get_quote(self) -> Dict:
+        """Generate a quote using Gemini API"""
         prompt = """You are managing an Instagram account that posts daily, aesthetic, and thought-provoking science-related quotes.        
         Your goal is to create content that both inspires and educates, while optimizing for maximum reach and engagement. 
         Select powerful quotes from the realms of science, computer science, physics, chemistry, or engineering—without diluting 
@@ -95,6 +101,7 @@ class QuoteGenerator:
         strict_prompt = "Generate ONLY a JSON object with these exact fields: quote, author, and instagram_description. No citations or references."
 
         try:
+            logger.info("Requesting quote from Gemini API...")
             response = self.chat_session.send_message(prompt)
             
             # Check if response has citations
@@ -148,8 +155,9 @@ class QuoteGenerator:
                 self.initialize_chat()
                 self.save_history()
             
+            logger.debug(f"Raw response: {response}")
             return quote_data
             
         except Exception as e:
-            print(f"Error generating quote: {e}")
+            logger.error(f"Error generating quote: {e}")
             return None

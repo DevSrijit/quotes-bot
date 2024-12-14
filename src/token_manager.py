@@ -4,37 +4,44 @@ from dotenv import load_dotenv
 from pathlib import Path
 import argparse
 import json
+import logging
+
+# Get module logger
+logger = logging.getLogger(__name__)
 
 def update_env_file(key: str, value: str):
     """Update a specific key in the .env file"""
-    env_path = Path(__file__).parent.parent / '.env'
+    try:
+        env_path = Path(__file__).parent.parent / '.env'
 
-    # Read the current env file
-    if not env_path.exists():
-        with open(env_path, 'w'): pass  # Create if it doesn't exist
-    with open(env_path, 'r') as f:
-        lines = f.readlines()
+        # Read the current env file
+        if not env_path.exists():
+            with open(env_path, 'w'): pass  # Create if it doesn't exist
+        with open(env_path, 'r') as f:
+            lines = f.readlines()
 
-    # Update or add the key
-    key_updated = False
-    for i, line in enumerate(lines):
-        if line.startswith(f'{key}='):
-            lines[i] = f'{key}={value}\n'
-            key_updated = True
-            break
+        # Update or add the key
+        key_updated = False
+        for i, line in enumerate(lines):
+            if line.startswith(f'{key}='):
+                lines[i] = f'{key}={value}\n'
+                key_updated = True
+                break
 
-    if not key_updated:
-        lines.append(f'{key}={value}\n')
+        if not key_updated:
+            lines.append(f'{key}={value}\n')
 
-    # Write back to the env file
-    with open(env_path, 'w') as f:
-        f.writelines(lines)
+        # Write back to the env file
+        with open(env_path, 'w') as f:
+            f.writelines(lines)
 
-    print(f"✅ Updated {key} in .env file")
+        logger.info(f"Updated {key} in .env file")
+    except Exception as e:
+        logger.error(f"Failed to update .env file: {e}")
 
 def exchange_token(short_lived_token: str):
     """Exchange short-lived token for long-lived token"""
-    print("Exchanging short-lived token for long-lived token...")
+    logger.info("Exchanging short-lived token for long-lived token...")
     app_secret = os.getenv("META_APP_SECRET")
     url = "https://graph.facebook.com/v21.0/oauth/access_token"
     params = {

@@ -4,9 +4,14 @@ import resend
 from datetime import datetime, timedelta
 import pytz
 from token_manager import refresh_long_lived_token
+import logging
+
+# Get module logger
+logger = logging.getLogger(__name__)
 
 class MonitoringService:
     def __init__(self):
+        logger.info("Initializing MonitoringService...")
         self.resend_api_key = os.getenv("RESEND_API_KEY")
         self.monitoring_email = os.getenv("MONITORING_EMAIL")
         self.ist_timezone = pytz.timezone('Asia/Kolkata')
@@ -36,7 +41,7 @@ class MonitoringService:
             return
             
         if not self._can_send_notification():
-            print("Skipping notification due to rate limiting")
+            logger.info("Skipping notification due to rate limiting")
             return
             
         try:
@@ -57,10 +62,10 @@ class MonitoringService:
             
             resend.Emails.send(params)
             self.last_notification_time = datetime.now(self.ist_timezone)
-            print(f"Sent monitoring email: {subject}")
+            logger.info(f"Sent monitoring email: {subject}")
             
         except Exception as e:
-            print(f"Failed to send monitoring email: {str(e)}")
+            logger.error(f"Failed to send monitoring email: {str(e)}")
 
     def check_token_expiration(self):
         """Check if the Instagram Graph API token is nearing expiration and refresh if needed"""

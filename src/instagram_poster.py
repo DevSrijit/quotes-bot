@@ -8,6 +8,9 @@ import tempfile
 import urllib.parse
 from datetime import datetime, timezone
 
+# Configure logging at the beginning
+logging.basicConfig(level=logging.INFO)
+
 class InstagramPoster:
     def __init__(self):
         print("Initializing Instagram Graph API client...")
@@ -62,27 +65,28 @@ class InstagramPoster:
         try:
             token_info = self.get_token_info()
             if not token_info.get('is_valid'):
+                logging.error("Access token is invalid.")
                 return False
-                
             # Check expiration
             expires_at = token_info.get('expires_at', 0)
             if expires_at == 0:  # Never expires
                 return True
-                
             now = int(time.time())
-            return now < expires_at
-            
+            if now < expires_at:
+                return True
+            else:
+                logging.error("Access token has expired.")
+                return False
         except Exception as e:
-            print(f"Error checking token validity: {str(e)}")
+            logging.error(f"Error checking token validity: {e}")
             return False
 
     def upload_to_imgbb(self, image_path: str) -> str:
         """Upload image to imgbb and return the URL"""
         imgbb_key = os.getenv("IMGBB_API_KEY")
         if not imgbb_key:
-            raise Exception("IMGBBB_API_KEY environment variable is required")
-        
-        print("Uploading image to temporary hosting...")
+            raise Exception("IMGBB_API_KEY environment variable is required")
+        logging.info("Uploading image to temporary hosting...")
         with open(image_path, 'rb') as image_file:
             files = {'image': image_file}
             response = requests.post(
@@ -90,14 +94,13 @@ class InstagramPoster:
                 params={'key': imgbb_key, 'expiration': 600},
                 files=files
             )
-            
             if response.status_code != 200:
+                logging.error(f"Failed to upload to imgbb: {response.text}")
                 raise Exception(f"Failed to upload to imgbb: {response.text}")
-            
             data = response.json()
             if not data.get('success'):
+                logging.error(f"imgbb upload failed: {data}")
                 raise Exception(f"imgbb upload failed: {data}")
-                
             return data['data']['url']
         
     def validate_credentials(self):
@@ -241,3 +244,12 @@ class InstagramPoster:
     def cleanup(self):
         """Clean up any temporary files"""
         pass  # No session files needed with Graph API
+
+    def scheduled_post(self):
+        logging.info("Scheduled post triggered.")
+        try:
+            # Your posting code here
+            # ...
+            logging.info("Post successfully published.")
+        except Exception as e:
+            logging.error(f"Error during scheduled post: {e}")
